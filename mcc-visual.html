@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCC Visual Layout — Sawmill Electrical</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07090d;--surface:#0d1420;--card:#111b28;
+  --border:#1a2d42;--border-lit:#2a4060;
+  --accent:#f59e0b;--adim:rgba(245,158,11,.12);
+  --blue:#38bdf8;--bdim:rgba(56,189,248,.1);
+  --green:#22c55e;--gdim:rgba(34,197,94,.1);
+  --red:#ef4444;--rdim:rgba(239,68,68,.1);
+  --purple:#a78bfa;--yellow:#fde047;
+  --text:#cdd9e8;--muted:#4a6280;--muted2:#2a3d52;
+  --mono:'Share Tech Mono',monospace;
+  --head:'Rajdhani',sans-serif;
+  --body:'Barlow',sans-serif;
+  --unit:48px; /* 1 bucket height unit */
+  --col-w:130px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--body);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(56,189,248,.02) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(56,189,248,.02) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;}
+
+/* ── TOP BAR ── */
+.topbar{display:flex;align-items:center;gap:10px;padding:0 16px;height:48px;
+  background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;z-index:10;position:relative;}
+.tb-logo{font-family:var(--head);font-weight:700;font-size:1rem;letter-spacing:.05em;text-transform:uppercase;}
+.tb-logo span{color:var(--accent);}
+.tb-sep{flex:1;}
+.tb-btn{font-family:var(--mono);font-size:10px;padding:5px 12px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;}
+.tb-btn:hover{border-color:var(--accent);color:var(--accent);}
+.tb-btn.active{border-color:var(--blue);color:var(--blue);background:var(--bdim);}
+
+/* ── LAYOUT ── */
+.layout{display:flex;flex:1;overflow:hidden;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:280px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;}
+.sb-head{padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.sb-mcc-sel{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:11px;padding:7px 10px;outline:none;margin-bottom:8px;}
+.sb-mcc-sel:focus{border-color:var(--accent);}
+.sb-search{display:flex;gap:6px;}
+.sb-search input{flex:1;background:var(--card);border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:11px;padding:6px 9px;outline:none;}
+.sb-search input:focus{border-color:var(--blue);}
+.sb-search select{background:var(--card);border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:10px;padding:6px 6px;outline:none;}
+
+.bucket-list{flex:1;overflow-y:auto;padding:8px 0;}
+.bucket-list::-webkit-scrollbar{width:3px;}
+.bucket-list::-webkit-scrollbar-thumb{background:var(--border-lit);}
+
+/* bucket list item */
+.bl-item{border-bottom:1px solid rgba(26,45,66,.4);cursor:pointer;transition:background .1s;}
+.bl-item:hover{background:rgba(56,189,248,.03);}
+.bl-item.active{background:var(--bdim);border-left:2px solid var(--blue);}
+.bl-header{display:flex;align-items:center;gap:8px;padding:8px 14px;}
+.bl-pos{font-family:var(--mono);font-size:11px;color:var(--accent);min-width:32px;}
+.bl-desc{font-size:12px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bl-meta{font-family:var(--mono);font-size:9px;color:var(--muted);}
+.bl-chevron{font-size:10px;color:var(--muted);transition:transform .2s;flex-shrink:0;}
+.bl-item.expanded .bl-chevron{transform:rotate(90deg);}
+.bl-children{display:none;padding:0 14px 8px 40px;background:rgba(0,0,0,.15);}
+.bl-item.expanded .bl-children{display:block;}
+.bl-child{display:flex;align-items:center;gap:6px;padding:4px 0;
+  font-family:var(--mono);font-size:10px;color:var(--muted);border-bottom:1px solid rgba(26,45,66,.3);}
+.bl-child:last-child{border:none;}
+.bl-child-icon{font-size:12px;flex-shrink:0;}
+.bl-child-name{flex:1;color:var(--text);font-size:11px;}
+.bl-child-edit{cursor:pointer;color:var(--muted);padding:2px 4px;transition:color .15s;font-size:10px;}
+.bl-child-edit:hover{color:var(--blue);}
+.bl-add-child{display:flex;align-items:center;gap:6px;padding:5px 0;margin-top:4px;
+  cursor:pointer;color:var(--green);font-family:var(--mono);font-size:10px;opacity:.7;}
+.bl-add-child:hover{opacity:1;}
+
+.no-buckets{padding:32px 14px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--muted);}
+
+/* ── MAIN PANEL ── */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+
+/* MCC VISUAL */
+.mcc-wrap{flex:1;overflow:auto;padding:20px;position:relative;}
+.mcc-wrap::-webkit-scrollbar{width:6px;height:6px;}
+.mcc-wrap::-webkit-scrollbar-thumb{background:var(--border-lit);}
+
+.mcc-title{font-family:var(--head);font-weight:700;font-size:1.3rem;text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:4px;}
+.mcc-title span{color:var(--accent);}
+.mcc-subtitle{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:16px;letter-spacing:.06em;}
+
+.mcc-controls{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.mcc-ctrl-label{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.mcc-ctrl-input{background:var(--card);border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:11px;padding:5px 8px;outline:none;width:60px;}
+.mcc-ctrl-input:focus{border-color:var(--accent);}
+
+/* MCC CABINET */
+.mcc-cabinet{display:flex;gap:0;border:2px solid var(--border-lit);background:var(--card);
+  padding:12px;gap:4px;position:relative;width:fit-content;min-width:300px;}
+.mcc-cabinet-label{position:absolute;top:-22px;left:0;font-family:var(--mono);font-size:10px;
+  color:var(--muted);letter-spacing:.08em;}
+
+/* column */
+.mcc-col{display:flex;flex-direction:column;gap:3px;position:relative;}
+.mcc-col-label{font-family:var(--mono);font-size:9px;color:var(--muted);text-align:center;
+  padding:2px 0 4px;letter-spacing:.06em;}
+
+/* bucket cell */
+.mcc-bucket{
+  width:var(--col-w);
+  background:#0e1824;
+  border:1px solid var(--border);
+  cursor:pointer;
+  transition:all .15s;
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  padding:3px 6px;
+}
+.mcc-bucket:hover{border-color:var(--blue);background:#112030;z-index:2;}
+.mcc-bucket.highlighted{
+  border-color:var(--accent) !important;
+  background:var(--adim) !important;
+  box-shadow:0 0 12px rgba(245,158,11,.3);
+  z-index:3;
+}
+.mcc-bucket.has-children{border-left:3px solid var(--green);}
+.mcc-bucket.vfd{border-left:3px solid var(--blue);}
+.mcc-bucket.empty-slot{background:#080c10;border:1px dashed var(--muted2);cursor:default;}
+.mcc-bucket.empty-slot:hover{border-color:var(--muted2);background:#080c10;}
+
+.mb-pos{font-family:var(--mono);font-size:8px;color:var(--muted);line-height:1;}
+.mb-desc{font-size:10px;color:var(--text);line-height:1.2;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.mb-hp{font-family:var(--mono);font-size:8px;color:var(--accent);line-height:1;margin-top:1px;}
+.mb-indicator{position:absolute;right:4px;top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;gap:2px;align-items:flex-end;}
+.mb-dot{width:5px;height:5px;border-radius:50%;}
+
+/* DETAIL PANEL */
+.detail-panel{width:320px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;transition:width .2s;}
+.detail-panel.collapsed{width:0;border:none;}
+.dp-head{padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.dp-pos{font-family:var(--mono);font-size:10px;color:var(--accent);margin-bottom:3px;}
+.dp-desc{font-family:var(--head);font-weight:700;font-size:1rem;text-transform:uppercase;
+  letter-spacing:.04em;line-height:1.1;}
+.dp-mcc{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:4px;}
+.dp-body{flex:1;overflow-y:auto;padding:12px 16px;}
+.dp-body::-webkit-scrollbar{width:3px;}
+.dp-body::-webkit-scrollbar-thumb{background:var(--border-lit);}
+.dp-sec{font-family:var(--mono);font-size:9px;color:var(--blue);letter-spacing:.1em;
+  margin:12px 0 7px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+.dp-sec:first-child{margin-top:0;}
+.dp-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;
+  border-bottom:1px solid rgba(26,45,66,.3);}
+.dp-row:last-child{border:none;}
+.dp-key{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.05em;}
+.dp-val{font-family:var(--mono);font-size:10px;color:var(--text);}
+.dp-val.editable{cursor:pointer;border-bottom:1px dashed var(--border-lit);padding-bottom:1px;}
+.dp-val.editable:hover{color:var(--accent);border-color:var(--accent);}
+.dp-val input{background:transparent;border:none;border-bottom:1px solid var(--accent);
+  color:var(--accent);font-family:var(--mono);font-size:10px;outline:none;width:100%;text-align:right;}
+
+/* child items in detail */
+.dp-child{background:var(--card);border:1px solid var(--border);margin-bottom:6px;overflow:hidden;}
+.dp-child-hdr{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;}
+.dp-child-hdr:hover{background:rgba(56,189,248,.04);}
+.dp-child-icon{font-size:14px;}
+.dp-child-name{flex:1;font-size:12px;font-weight:500;}
+.dp-child-type{font-family:var(--mono);font-size:8px;padding:2px 6px;border:1px solid;letter-spacing:.04em;}
+.dp-child-body{display:none;padding:8px 10px;border-top:1px solid var(--border);}
+.dp-child.open .dp-child-body{display:block;}
+.dp-child-row{display:flex;justify-content:space-between;padding:3px 0;
+  border-bottom:1px solid rgba(26,45,66,.25);font-size:11px;}
+.dp-child-row:last-child{border:none;}
+.dp-child-key{color:var(--muted);font-family:var(--mono);font-size:9px;}
+.dp-child-val{color:var(--text);}
+
+.dp-add-btn{width:100%;background:transparent;border:1px dashed var(--border-lit);color:var(--muted);
+  font-family:var(--mono);font-size:10px;padding:7px;cursor:pointer;transition:all .15s;letter-spacing:.06em;margin-top:6px;}
+.dp-add-btn:hover{border-color:var(--green);color:var(--green);}
+
+.dp-height-ctrl{display:flex;align-items:center;gap:6px;}
+.dp-height-ctrl button{background:var(--card);border:1px solid var(--border);color:var(--text);
+  width:22px;height:22px;cursor:pointer;font-size:13px;line-height:1;transition:all .15s;}
+.dp-height-ctrl button:hover{border-color:var(--accent);color:var(--accent);}
+.dp-height-val{font-family:var(--mono);font-size:11px;color:var(--accent);min-width:16px;text-align:center;}
+
+.dp-close{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:16px;
+  padding:2px 6px;transition:color .15s;margin-left:auto;}
+.dp-close:hover{color:var(--red);}
+
+/* MODALS */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;
+  display:none;align-items:center;justify-content:center;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--card);border:1px solid var(--border);padding:22px;
+  width:360px;max-width:95vw;max-height:90vh;overflow-y:auto;}
+.modal-title{font-family:var(--head);font-weight:700;font-size:1rem;text-transform:uppercase;
+  letter-spacing:.05em;color:var(--blue);margin-bottom:14px;}
+.mf{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;}
+.mf label{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;}
+.mf input,.mf select,.mf textarea{background:var(--bg);border:1px solid var(--border);color:var(--text);
+  font-family:var(--body);font-size:12px;padding:6px 9px;outline:none;width:100%;}
+.mf input:focus,.mf select:focus{border-color:var(--accent);}
+.mf textarea{resize:vertical;min-height:50px;}
+.modal-acts{display:flex;gap:8px;margin-top:14px;justify-content:flex-end;}
+.mbtn{font-family:var(--head);font-weight:700;font-size:.78rem;letter-spacing:.07em;
+  text-transform:uppercase;padding:7px 16px;border:none;cursor:pointer;transition:all .15s;}
+.mbtn-p{background:var(--accent);color:#000;}
+.mbtn-p:hover{background:#fbbf24;}
+.mbtn-s{background:transparent;border:1px solid var(--border-lit);color:var(--text);}
+.mbtn-s:hover{border-color:var(--blue);color:var(--blue);}
+.mbtn-d{background:transparent;border:1px solid var(--red);color:var(--red);}
+.mbtn-d:hover{background:var(--rdim);}
+
+/* TYPE COLORS */
+.type-mtr{color:#f59e0b;border-color:rgba(245,158,11,.4);}
+.type-vfd{color:#38bdf8;border-color:rgba(56,189,248,.4);}
+.type-ld {color:#22c55e;border-color:rgba(34,197,94,.4);}
+.type-pnl{color:#a78bfa;border-color:rgba(167,139,250,.4);}
+.type-jb {color:#94a3b8;border-color:rgba(148,163,184,.4);}
+.type-xfmr{color:#fde047;border-color:rgba(253,224,71,.4);}
+.type-spl{color:#fb923c;border-color:rgba(251,146,60,.4);}
+
+/* toast */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--card);border:1px solid var(--green);
+  color:var(--green);font-family:var(--mono);font-size:10px;padding:9px 14px;
+  opacity:0;transform:translateY(6px);transition:all .25s;z-index:9999;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+
+@media(max-width:900px){
+  .detail-panel{position:fixed;right:0;top:48px;bottom:0;z-index:50;width:300px !important;}
+  .detail-panel.collapsed{width:0 !important;}
+}
+@media(max-width:600px){
+  .sidebar{width:240px;}
+  --col-w:100px;
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="tb-logo">Sawmill <span>MCC</span> Visual</div>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="exportData()">↓ Export JSON</button>
+  <button class="tb-btn" onclick="importData()">↑ Import</button>
+  <button class="tb-btn active" id="btn-legend" onclick="toggleLegend()">Legend</button>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+<!-- ── SIDEBAR ── -->
+<div class="sidebar">
+  <div class="sb-head">
+    <select class="sb-mcc-sel" id="mcc-sel" onchange="selectMCC(this.value)">
+      <option value="">— Select MCC —</option>
+    </select>
+    <div class="sb-search">
+      <input type="text" id="sb-q" placeholder="Search buckets..." oninput="renderList()">
+      <select id="sb-filter" onchange="renderList()">
+        <option value="">All</option>
+        <option value="MTR">Motor</option>
+        <option value="VFD">VFD</option>
+        <option value="LD">Disconnect</option>
+        <option value="PNL">Panel</option>
+      </select>
+    </div>
+  </div>
+  <div class="bucket-list" id="bucket-list">
+    <div class="no-buckets">Select an MCC to view buckets</div>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+  <div class="mcc-wrap" id="mcc-wrap">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);font-family:var(--mono);font-size:12px;gap:10px;">
+      <div style="font-size:40px;opacity:.2">⚡</div>
+      <div>Select an MCC from the left panel</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── DETAIL PANEL ── -->
+<div class="detail-panel collapsed" id="detail-panel">
+  <div class="dp-head">
+    <div style="display:flex;align-items:flex-start">
+      <div style="flex:1">
+        <div class="dp-pos" id="dp-pos">—</div>
+        <div class="dp-desc" id="dp-desc">—</div>
+        <div class="dp-mcc" id="dp-mcc">—</div>
+      </div>
+      <button class="dp-close" onclick="closeDetail()">✕</button>
+    </div>
+  </div>
+  <div class="dp-body" id="dp-body"></div>
+</div>
+
+</div><!-- layout -->
+
+<!-- ADD CHILD MODAL -->
+<div class="modal-bg" id="add-modal">
+  <div class="modal">
+    <div class="modal-title" id="add-modal-title">Add Equipment</div>
+    <div class="mf">
+      <label>Equipment Type</label>
+      <select id="child-type" onchange="updateChildFields()">
+        <option value="MTR">🔴 Motor</option>
+        <option value="VFD">🔵 VFD Drive</option>
+        <option value="LD">🟢 Local Disconnect</option>
+        <option value="PNL">🟣 Panel / Control</option>
+        <option value="JB">⚪ Junction Box</option>
+        <option value="XFMR">🟡 Transformer</option>
+        <option value="SPL">🟠 Splitter</option>
+      </select>
+    </div>
+    <div class="mf">
+      <label>Name / Description</label>
+      <input type="text" id="child-name" placeholder="e.g. Debarker 5 Feed Motor">
+    </div>
+    <div id="child-fields"></div>
+    <div class="modal-acts">
+      <button class="mbtn mbtn-s" onclick="closeAddModal()">Cancel</button>
+      <button class="mbtn mbtn-d" id="btn-del-child" style="display:none" onclick="deleteChild()">Delete</button>
+      <button class="mbtn mbtn-p" onclick="saveChild()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEGEND -->
+<div class="modal-bg" id="legend-modal">
+  <div class="modal" style="width:280px">
+    <div class="modal-title">Legend</div>
+    <div style="display:flex;flex-direction:column;gap:8px;font-family:var(--mono);font-size:11px;">
+      <div style="display:flex;align-items:center;gap:8px"><div style="width:16px;height:16px;border-left:3px solid var(--green);background:var(--card)"></div>Has child equipment</div>
+      <div style="display:flex;align-items:center;gap:8px"><div style="width:16px;height:16px;border-left:3px solid var(--blue);background:var(--card)"></div>Has VFD</div>
+      <div style="display:flex;align-items:center;gap:8px"><div style="width:16px;height:16px;border:1px solid var(--accent);background:var(--adim)"></div>Selected bucket</div>
+      <div style="display:flex;align-items:center;gap:8px"><div style="width:16px;height:16px;border:1px dashed var(--muted2);background:#080c10"></div>Empty slot</div>
+      <hr style="border-color:var(--border);margin:4px 0">
+      <div><span class="dp-child-type type-mtr">MTR</span> Motor</div>
+      <div><span class="dp-child-type type-vfd">VFD</span> VFD Drive</div>
+      <div><span class="dp-child-type type-ld">LD</span> Local Disconnect</div>
+      <div><span class="dp-child-type type-pnl">PNL</span> Panel/Control</div>
+      <div><span class="dp-child-type type-jb">JB</span> Junction Box</div>
+      <div><span class="dp-child-type type-xfmr">XFMR</span> Transformer</div>
+      <div><span class="dp-child-type type-spl">SPL</span> Splitter</div>
+    </div>
+    <div class="modal-acts"><button class="mbtn mbtn-s" onclick="closeLegend()">Close</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="file-import" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+const RAW_MCC = {"MCC #1":[{"pos":"0A","col":0,"row":"A","desc":"Debarker 6 Pullout HPU [12-10-09]","number":"82-03-01-0-00","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"0B","col":0,"row":"B","desc":"Debarker 6 Centering Conveyor HPU","number":"82-03-01-0-00","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"0C","col":0,"row":"C","desc":"Debarker 6 Bark Conveyor [12-10-07]","number":"82-03-01-0-00","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"0D","col":0,"row":"D","desc":"Debarker 6 Loading Deck [12-10-06]","number":"82-03-01-0-00","hp":"20","rpm":"1800","volt":"600","frame":"256T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"0E","col":0,"row":"E","desc":"Debarker 5 Outfeed Conveyor [12-10-10]","number":"82-03-01-0-00","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1A","col":1,"row":"A","desc":"RIO 3 Debarker PLC 5 6","number":"82-03-01-0-01","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1B","col":1,"row":"B","desc":"Debarker 5 Loading Deck [12-02-04]","number":"82-03-01-0-01","hp":"20","rpm":"1800","volt":"600","frame":"256T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1C","col":1,"row":"C","desc":"Refuse conveyor Under Slasher 302","number":"82-03-01-0-01","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1D","col":1,"row":"D","desc":"Debarker 5 Pullout HPU","number":"82-03-01-0-01","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1E","col":1,"row":"E","desc":"Debarker 5 Centering Conveyor HPU","number":"82-03-01-0-01","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"Debarker 5 Splitter","number":"82-03-01-0-02","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2B","col":2,"row":"B","desc":"Debarker 5 Metering Deck [12-02-05]","number":"82-03-01-0-02","hp":"20","rpm":"1800","volt":"600","frame":"256T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2C","col":2,"row":"C","desc":"Debarker 6 Outfeed Conveyor [12-05-09]","number":"82-03-01-0-02","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"Debarker 6 Splitter","number":"82-03-01-0-03","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3B","col":3,"row":"B","desc":"Debarker 6 Metering Deck [12-10-05]","number":"82-03-01-0-03","hp":"7.5","rpm":"1800","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3C","col":3,"row":"C","desc":"Spare","number":"82-03-01-0-03","hp":"150","rpm":"1800","volt":"600","frame":"445T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4A","col":4,"row":"A","desc":"C4 MCC #1 Control Lighting Panel","number":"82-03-01-0-07","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4B","col":4,"row":"B","desc":"C4 MCC #1 Control Relay Panel","number":"82-03-01-0-08","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4C","col":4,"row":"C","desc":"C4 MCC #1 Control Power","number":"82-03-01-0-09","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4D","col":4,"row":"D","desc":"C4 MCC #1 Control Transformer","number":"82-03-01-0-10","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5A","col":5,"row":"A","desc":"C5 Drum Debarker Incline Conveyor [12-08-03] 311 Lockout","number":"82-03-01-0-11","hp":"20","rpm":"1800","volt":"600","frame":"256T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5B","col":5,"row":"B","desc":"Heater 1 (Deb 5 Basement) Temp Disc","number":"82-03-01-0-12","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5C","col":5,"row":"C","desc":"Overhead Crane Debarker Room","number":"82-03-01-0-13","hp":"25","rpm":"1200","volt":"600","frame":"324T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5D","col":5,"row":"D","desc":"Snow Conveyor","number":"82-03-01-0-14","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5E","col":5,"row":"E","desc":"Debarker 5 Bark Conveyor [50-07-19]","number":"82-03-01-0-15","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5F","col":5,"row":"F","desc":"C5 Heater in Hole #3","number":"82-03-01-0-16","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6A","col":6,"row":"A","desc":"C6 16' Re-entry Deck [12-03-11] 119","number":"82-03-01-0-17","hp":"7.5","rpm":"1200","volt":"600","frame":"254T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6B","col":6,"row":"B","desc":"C6 Tanguay [12-01-01] (Not in use)","number":"82-03-01-0-18","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6C","col":6,"row":"C","desc":"C6 Middle 16' Re-entry Deck [12-03-06] 125","number":"82-03-01-0-19","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6D","col":6,"row":"D","desc":"C6 9' Re-entry Deck [12-03-01] 128","number":"82-03-01-0-20","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7A","col":7,"row":"A","desc":"C7 Middle 16' Transfer Deck [12-03-07] 126","number":"82-03-01-0-21","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7B","col":7,"row":"B","desc":"C7 Welder by Slasher","number":"82-03-01-0-22","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7C","col":7,"row":"C","desc":"C7 Spare","number":"82-03-01-0-23","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7D","col":7,"row":"D","desc":"C7 16' Transfer Deck [12-03-12] 121","number":"82-03-01-0-24","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8A","col":8,"row":"A","desc":"C8 Incoming","number":"82-03-01-0-25","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8B","col":8,"row":"B","desc":"C8 Spare","number":"82-03-01-0-26","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8C","col":8,"row":"C","desc":"Steam Heater Deb 5 Room","number":"82-03-01-0-27","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8D","col":8,"row":"D","desc":"C8 Heater in Hole #2","number":"82-03-01-0-28","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8E","col":8,"row":"E","desc":"C8 Heater in Hole #1","number":"82-03-01-0-29","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]}],"MCC #2":[{"pos":"1A","col":1,"row":"A","desc":"C1 Incoming","number":"82-03-02-0-01","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1B","col":1,"row":"B","desc":"C1 Heater Above Carpenter Shop Door","number":"82-03-02-0-02","hp":"10","rpm":"","volt":"600","frame":"","vfd":"","breaker":"30","fuse":"","height":1,"children":[]},{"pos":"1C","col":1,"row":"C","desc":"C1 9' Incline Deck [12-03-02] 129","number":"82-03-02-0-03","hp":"10","rpm":"1800","volt":"600","frame":"215T","vfd":"","breaker":"30","fuse":"","height":1,"children":[]},{"pos":"1D","col":1,"row":"D","desc":"C1 Unscrambler #1 [12-03-04] 140","number":"82-03-02-0-04","hp":"15","rpm":"1200","volt":"600","frame":"284T","vfd":"","breaker":"30","fuse":"","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 Bark Collector Conveyor [50-07-12] 308","number":"82-03-02-0-05","hp":"15","rpm":"","volt":"600","frame":"","vfd":"","breaker":"50","fuse":"","height":1,"children":[]},{"pos":"2B","col":2,"row":"B","desc":"C2 Whole Log Chipper Infeed Roll [50-02-02] 304A","number":"82-03-02-0-06","hp":"1","rpm":"","volt":"600","frame":"","vfd":"","breaker":"15","fuse":"","height":1,"children":[]},{"pos":"2C","col":2,"row":"C","desc":"C2 Whole Log Chipper Infeed Conveyor [50-02-01] 304","number":"82-03-02-0-07","hp":"5","rpm":"1800","volt":"600","frame":"184T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"2D","col":2,"row":"D","desc":"C2 Whole Log Chipper Outfeed Belt [50-02-04] 305","number":"82-03-02-0-08","hp":"15","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"2E","col":2,"row":"E","desc":"C2 Welder By Sump Pump","number":"82-03-02-0-09","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"2F","col":2,"row":"F","desc":"C2 Not Used (Sump Pump #3)","number":"82-03-02-0-10","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C3 MCC #2 Control Transformer","number":"82-03-02-0-11","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3B","col":3,"row":"B","desc":"C3 MCC #2 Control Power Main Switch","number":"82-03-02-0-12","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"6","height":1,"children":[]},{"pos":"3C","col":3,"row":"C","desc":"C3 Cross Conveyor #1 [50-07-01] 306","number":"82-03-02-0-13","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"3D","col":3,"row":"D","desc":"C3 Cross Conveyor #3 [50-07-02] 306A","number":"82-03-02-0-14","hp":"10","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"3E","col":3,"row":"E","desc":"C3 Cross Conveyor #4 [50-07-03] 306B","number":"82-03-02-0-15","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"3F","col":3,"row":"F","desc":"C3 Cross Conveyor #4 [50-07-04] 306C","number":"82-03-02-0-16","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"4A","col":4,"row":"A","desc":"C4 Cross Conveyor #5 [50-07-07] 307C","number":"82-03-02-0-17","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"4B","col":4,"row":"B","desc":"C4 Cross Conveyor #7 [50-07-05] 307","number":"82-03-02-0-18","hp":"10","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"4C","col":4,"row":"C","desc":"C4 Heater #4 by Vibrating Conveyor (Lockout red)","number":"82-03-02-0-19","hp":"15","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"40","height":1,"children":[]},{"pos":"4D","col":4,"row":"D","desc":"C4 Sump Pump #1","number":"82-03-02-0-20","hp":"15","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"50","height":1,"children":[]},{"pos":"4E","col":4,"row":"E","desc":"C4 Heater #5 By Sump Pump","number":"82-03-02-0-21","hp":"15","rpm":"1800","volt":"600","frame":"254T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"4F","col":4,"row":"F","desc":"C4 Whole Log Clean Out Belt [50-07-11] 309 (Lockout green)","number":"82-03-02-0-22","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"5A","col":5,"row":"A","desc":"C5 16' Incline Tank [12-03-13] 122","number":"82-03-02-0-23","hp":"20","rpm":"1800","volt":"600","frame":"256T","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"5B","col":5,"row":"B","desc":"C5 Accumulation Deck to #4 [12-03-19] 131","number":"82-03-02-0-24","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"5C","col":5,"row":"C","desc":"C5 16' Unscrambler [12-03-14] 142","number":"82-03-02-0-25","hp":"20","rpm":"1200","volt":"600","frame":"286T","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"5D","col":5,"row":"D","desc":"C5 16' Transfer Belt [12-03-16] 149","number":"82-03-02-0-26","hp":"15","rpm":"1800","volt":"600","frame":"254T","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"5E","col":5,"row":"E","desc":"C5 Unscrambler #4 [12-03-20] 143","number":"82-03-02-0-27","hp":"15","rpm":"1200","volt":"600","frame":"284T","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"5F","col":5,"row":"F","desc":"C5 Unscrambler #3 [12-03-17] 144","number":"82-03-02-0-28","hp":"15","rpm":"1200","volt":"600","frame":"284T","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"6A","col":6,"row":"A","desc":"C6 Heater by MCC #2 (South)","number":"82-03-02-0-29","hp":"20","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"6B","col":6,"row":"B","desc":"C6 Heater by MCC #2 (East)","number":"82-03-02-0-30","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"25","height":1,"children":[]},{"pos":"6C","col":6,"row":"C","desc":"C6 Middle 16' Incline Deck [12-03-08] 127","number":"82-03-02-0-31","hp":"20","rpm":"1800","volt":"600","frame":"256T","vfd":"","breaker":"","fuse":"50","height":1,"children":[]},{"pos":"6D","col":6,"row":"D","desc":"C6 Boiler House (Sump Pump)","number":"82-03-02-0-32","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"6E","col":6,"row":"E","desc":"C6 Lighting Panel I & N","number":"82-03-02-0-33","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"40","height":1,"children":[]},{"pos":"6F","col":6,"row":"F","desc":"C6 Lighting Panel A6","number":"82-03-02-0-34","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"35","height":1,"children":[]},{"pos":"7A","col":7,"row":"A","desc":"C7 Unscrambler #2 [12-03-09] 141","number":"82-03-02-0-35","hp":"15","rpm":"1800","volt":"600","frame":"254T","vfd":"","breaker":"","fuse":"60","height":1,"children":[]},{"pos":"7B","col":7,"row":"B","desc":"C7 Condensate Pump #1 [30-03-01] 571A","number":"82-03-02-0-36","hp":"5","rpm":"1800","volt":"600","frame":"S184TJP","vfd":"","breaker":"","fuse":"10","height":1,"children":[]},{"pos":"7C","col":7,"row":"C","desc":"C7 Condensate Pump #2 [30-03-02] 571B","number":"82-03-02-0-37","hp":"5","rpm":"1800","volt":"600","frame":"S184TJP","vfd":"","breaker":"","fuse":"10","height":1,"children":[]},{"pos":"7D","col":7,"row":"D","desc":"C7 Contractors Welder in hole","number":"82-03-02-0-38","hp":"5 OR 10","rpm":"865","volt":"600","frame":"284T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"7E","col":7,"row":"E","desc":"C7 Refuse Conveyor [12-08-11] 301B","number":"82-03-02-0-39","hp":"3 OR 7.5","rpm":"1800","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"7F","col":7,"row":"F","desc":"C7 Overs Conveyor #3 [50-04-13] 544E","number":"82-03-02-0-40","hp":"3 OR 7.5","rpm":"1800","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]}],"MCC #3":[{"pos":"1A","col":1,"row":"A","desc":"C1 Incoming","number":"82-03-03-0-01","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1B","col":1,"row":"B","desc":"C1 Fuel House Hydraulics [30-01-06] 538A","number":"82-03-03-0-02","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1C","col":1,"row":"C","desc":"C1 Conveyor to Fuel House [30-01-02] 349B","number":"82-03-03-0-03","hp":"7.5","rpm":"1200","volt":"600","frame":"254T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1D","col":1,"row":"D","desc":"C1 Boiler Feed Pump #1 [30-02-03] 548","number":"82-03-03-0-04","hp":"75","rpm":"3565","volt":"575","frame":"365TS","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1E","col":1,"row":"E","desc":"C1 Fuel House Reclaim Spike Roll [30-01-07]","number":"82-03-03-0-05","hp":"5","rpm":"1200","volt":"600","frame":"215T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 Boiler Feed Pump #1 Control Only [30-02-03] 548","number":"82-03-03-0-06","hp":"1.5","rpm":"1800","volt":"600","frame":"145T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2B","col":2,"row":"B","desc":"C2 Air Pulsator [30-06-05] 562","number":"82-03-03-0-07","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2C","col":2,"row":"C","desc":"C2 #4 Fuel House Infeed to Boiler [30-01-09]","number":"82-03-03-0-08","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2D","col":2,"row":"D","desc":"C2 New Bin #4 Fuel Bin [30-01-08]","number":"82-03-03-0-09","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2E","col":2,"row":"E","desc":"C2 #2 Boiler Infeed Conveyor [30-01-10] 534","number":"82-03-03-0-10","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2F","col":2,"row":"F","desc":"C2 Lighting Panel F","number":"82-03-03-0-11","hp":"15","rpm":"1200","volt":"600","frame":"284T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C3 Spare","number":"82-03-03-0-13","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3B","col":3,"row":"B","desc":"C3 Boiler Excess Conveyor [30-01-11] 536","number":"82-03-03-0-14","hp":"7.5","rpm":"1800","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3C","col":3,"row":"C","desc":"C3 Rotary Air Lock #2 [30-05-03] 561","number":"82-03-03-0-15","hp":"1.5","rpm":"1800","volt":"600","frame":"145T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3D","col":3,"row":"D","desc":"C3 Ash Auger [30-05-07]","number":"82-03-03-0-16","hp":"1.5","rpm":"1800","volt":"600","frame":"145T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3E","col":3,"row":"E","desc":"C3 349A","number":"82-03-03-0-17","hp":"1.5","rpm":"1800","volt":"600","frame":"KS145T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4A","col":4,"row":"A","desc":"C4 Fuel Spout [30-06-03] 546","number":"82-03-03-0-18","hp":"7.5","rpm":"1800","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4B","col":4,"row":"B","desc":"C4 Force Draft Fan [30-02-02] 544","number":"82-03-03-0-19","hp":"50","rpm":"1770","volt":"575","frame":"326TC","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4C","col":4,"row":"C","desc":"C4 Boiler Feed Pump #2 [30-02-04]","number":"82-03-03-0-20","hp":"75","rpm":"3550","volt":"575","frame":"365TS","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5A","col":5,"row":"A","desc":"C5 Boiler Auger Control Power","number":"82-03-03-0-21","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"5A","col":5,"row":"A","desc":"C5 Boiler Control Power","number":"82-03-03-0-22","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"5B","col":5,"row":"B","desc":"C5 Induced Draft Fan [30-02-07]","number":"82-03-03-0-23","hp":"150","rpm":"1780","volt":"575","frame":"445T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6A","col":6,"row":"A","desc":"C6 Fuel Oil Pump #2 (Not Active)","number":"82-03-03-0-24","hp":"1.5","rpm":"1800","volt":"600","frame":"KS145T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6B","col":6,"row":"B","desc":"C6 Compressor #4 [30-04-04] 553","number":"82-03-03-0-25","hp":"150","rpm":"1775","volt":"600","frame":"444TC","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6C","col":6,"row":"C","desc":"C6 Makeup Air Heater","number":"82-03-03-0-26","hp":"7.5","rpm":"1800","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6D","col":6,"row":"D","desc":"C6 Disc Screen [30-01-01] 350","number":"82-03-03-0-27","hp":"15","rpm":"1200","volt":"600","frame":"284T","vfd":"","breaker":"","fuse":"60","height":1,"children":[]},{"pos":"6E","col":6,"row":"E","desc":"C6 Fuel House Spreader Chain #2 [30-01-04] 351A","number":"82-03-03-0-28","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7A","col":7,"row":"A","desc":"C7 Boiler Exhaust E-18 [30-07-01] 565A","number":"82-03-03-0-29","hp":"2","rpm":"1200","volt":"600","frame":"184T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7B","col":7,"row":"B","desc":"C7 Boiler Exhaust E-19 [30-07-02] 565B","number":"82-03-03-0-30","hp":"3","rpm":"1200","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7C","col":7,"row":"C","desc":"C7 Fuel House Spreader Chain #1 [30-01-03] 351","number":"82-03-03-0-31","hp":"5","rpm":"1200","volt":"600","frame":"215T","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"7D","col":7,"row":"D","desc":"C7 Welder Plug","number":"82-03-03-0-32","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7E","col":7,"row":"E","desc":"C7 Not Used (Steam Condensate Fan)","number":"82-03-03-0-33","hp":"7.5","rpm":"1200","volt":"600","frame":"254T","vfd":"","breaker":"","fuse":"","height":1,"children":[]}],"MCC #4":[{"pos":"1A","col":1,"row":"A","desc":"C1 Incoming","number":"82-03-04-0-01","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1B","col":1,"row":"B","desc":"C1 Spare","number":"82-03-04-0-02","hp":"50","rpm":"1800","volt":"600","frame":"326T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1C","col":1,"row":"C","desc":"C1 Out Of Service Bad Condition","number":"82-03-04-0-03","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"40","height":1,"children":[]},{"pos":"1D","col":1,"row":"D","desc":"C1 Spare","number":"82-03-04-0-04","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1E","col":1,"row":"E","desc":"C1 Lighting Panel A & R","number":"82-03-04-0-05","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"60","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 Debarker #4 Outfeed [12-07-08]","number":"82-03-04-0-06","hp":"20","rpm":"1800","volt":"600","frame":"256T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2B","col":2,"row":"B","desc":"C2 Welder Wave Feeder","number":"82-03-04-0-07","hp":"15","rpm":"1200","volt":"600","frame":"284T","vfd":"","breaker":"","fuse":"60","height":1,"children":[]},{"pos":"2C","col":2,"row":"C","desc":"C2 Debarker #3 Rotor [12-06-03]","number":"82-03-04-0-08","hp":"75","rpm":"1800","volt":"600","frame":"365T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C3 Not Used (Capacitors)","number":"82-03-04-0-09","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"200","height":1,"children":[]},{"pos":"3B","col":3,"row":"B","desc":"C3 Debarker #3 Outfeed Belt [12-06-07]","number":"82-03-04-0-10","hp":"15","rpm":"1800","volt":"600","frame":"254T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3C","col":3,"row":"C","desc":"C3 Carpenter Shop Heater Disconnect Switch","number":"82-03-04-0-11","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"40","height":1,"children":[]},{"pos":"3D","col":3,"row":"D","desc":"C3 Welder Unscrumbler","number":"82-03-04-0-12","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"40","height":1,"children":[]},{"pos":"3E","col":3,"row":"E","desc":"C3 FLR Dust Collector","number":"82-03-04-0-13","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4A","col":4,"row":"A","desc":"C4 Top Deck Hoist Control Power","number":"82-03-04-0-14","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4A","col":4,"row":"A","desc":"C4 MCC #4 Control Power","number":"82-03-04-0-15","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4B","col":4,"row":"B","desc":"C4 Debarker #3 & #4 Pullout Hyd Pump [12-06-05]","number":"82-03-04-0-16","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4C","col":4,"row":"C","desc":"C4 Pattern Tank 1 16' Log [20-03-01] 182-187","number":"82-03-04-0-17","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"4D","col":4,"row":"D","desc":"C4 Overhead Sawmill Area Fume Extrator","number":"82-03-04-0-18","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4E","col":4,"row":"E","desc":"C4 Mk II Accumulation / Pattern 3 Landing Tank [20-03-05]","number":"82-03-04-0-19","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"5A","col":5,"row":"A","desc":"C5 Heater Near Carpenter Shop","number":"82-03-04-0-20","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"6","height":1,"children":[]},{"pos":"5B","col":5,"row":"B","desc":"C5 Welder by Vibrating Bark Conveyor","number":"82-03-04-0-21","hp":"15","rpm":"1200","volt":"600","frame":"284T","vfd":"","breaker":"","fuse":"60","height":1,"children":[]},{"pos":"5C","col":5,"row":"C","desc":"C5 Spare","number":"82-03-04-0-22","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5D","col":5,"row":"D","desc":"C5 MCC #4 Relay Panel","number":"82-03-04-0-23","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5E","col":5,"row":"E","desc":"C5 Spare","number":"82-03-04-0-24","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6A","col":6,"row":"A","desc":"C6 Debarker #3 Outfeed Rolls [12-06-06]","number":"82-03-04-0-25","hp":"3","rpm":"1800","volt":"575","frame":"R800T132M8/6","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6B","col":6,"row":"B","desc":"C6 Debarker #3 Infeed Rolls [12-06-02]","number":"82-03-04-0-26","hp":"3","rpm":"1800","volt":"575","frame":"R800T132M8/6","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7A","col":7,"row":"A","desc":"C7 Spare","number":"82-03-04-0-27","hp":"7.5 OR 5.6","rpm":"1200 OR 900","volt":"600","frame":"256T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7B","col":7,"row":"B","desc":"C7 Debarker #3 Infeed Chain [12-06-01]","number":"82-03-04-0-28","hp":"7.5","rpm":"1800","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8A","col":8,"row":"A","desc":"C8 Welder by Bark Collector Conveyor","number":"82-03-04-0-29","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"60","height":1,"children":[]},{"pos":"8B","col":8,"row":"B","desc":"C8 Debarker #4 Rotor [12-07-03] 158B","number":"82-03-04-0-30","hp":"75","rpm":"1200","volt":"600","frame":"405T","vfd":"","breaker":"","fuse":"","height":1,"children":[]}],"MCC #5":[{"pos":"1A","col":1,"row":"A","desc":"C1 Debarker #2 Heater","number":"82-03-05-0-01","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"1B","col":1,"row":"B","desc":"C1 9' Accumulation Tank [20-01-09] 174","number":"82-03-05-0-02","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"1C","col":1,"row":"C","desc":"C1 9' Spare","number":"82-03-05-0-03","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"1D","col":1,"row":"D","desc":"C1 Spare","number":"82-03-05-0-04","hp":"10","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"1E","col":1,"row":"E","desc":"C1 Filer Shop Disconnect","number":"82-03-05-0-05","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 Debarker #1 Exhaust Fan","number":"82-03-05-0-06","hp":"1.5","rpm":"1800","volt":"600","frame":"145T","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"2B","col":2,"row":"B","desc":"C2 Debarker #2 Exhaust Fan","number":"82-03-05-0-07","hp":"1.5","rpm":"1800","volt":"600","frame":"145T","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"2C","col":2,"row":"C","desc":"C2 Exhaust Fan Above Comact right Canter(Lockout red)Putinservice","number":"82-03-05-0-08","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"2D","col":2,"row":"D","desc":"C2 Pattern 2 Landing Tank [20-03-03] 192","number":"82-03-05-0-09","hp":"10","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"2E","col":2,"row":"E","desc":"C2 Log Reducer Hydraulic Pump [12-07-16] 159B","number":"82-03-05-0-10","hp":"20","rpm":"1800","volt":"600","frame":"256T","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C3 Wide Belt To Hewsaw [12-01-07]","number":"82-03-05-0-11","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3B","col":3,"row":"B","desc":"C3 Log Reducer Chipping Head [12-07-15]","number":"82-03-05-0-12","hp":"30","rpm":"1800","volt":"600","frame":"286T","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"3C","col":3,"row":"C","desc":"C3 Spare","number":"82-03-05-0-13","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3D","col":3,"row":"D","desc":"C3 Hydraulic Shop Heater","number":"82-03-05-0-14","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"4A","col":4,"row":"A","desc":"C4 Not Used (Capacitors)","number":"82-03-05-0-15","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"400","fuse":"","height":1,"children":[]},{"pos":"4B","col":4,"row":"B","desc":"C4 Exhaust Fan Above Log Turner (Lockout red)Put in service","number":"82-03-05-0-16","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"4C","col":4,"row":"C","desc":"C4 Exhaust Fan Above Cant Turner","number":"82-03-05-0-17","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5A","col":5,"row":"A","desc":"C5 Spare","number":"82-03-05-0-18","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5B","col":5,"row":"B","desc":"C5 MCC #5 Control Power","number":"82-03-05-0-19","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"5B","col":5,"row":"B","desc":"C5 MCC #5 Transformer Disconnect","number":"82-03-05-0-20","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"5C","col":5,"row":"C","desc":"C5 Sawline Hoist","number":"82-03-05-0-21","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"5C","col":5,"row":"C","desc":"C5 Spare","number":"82-03-05-0-22","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"5D","col":5,"row":"D","desc":"C5 Debarker #4 Infeed Chain #1 [12-07-01] 153","number":"82-03-05-0-23","hp":"10","rpm":"1800","volt":"600","frame":"215T","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"5E","col":5,"row":"E","desc":"C5 Exhaust Fan Above Profiler","number":"82-03-05-0-24","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"6A","col":6,"row":"A","desc":"C6 Spare","number":"82-03-05-0-25","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"6B","col":6,"row":"B","desc":"C6 Debarker #2 Infeed Chain [12-05-01]","number":"82-03-05-0-26","hp":"7.5","rpm":"1200","volt":"600","frame":"254T","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"6C","col":6,"row":"C","desc":"C6 Spare","number":"82-03-05-0-27","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"7A","col":7,"row":"A","desc":"C7 MCC #5-1 Feed","number":"82-03-05-0-28","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7B","col":7,"row":"B","desc":"C7 Spare","number":"82-03-05-0-29","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7B","col":7,"row":"B","desc":"C7 Debarker #2 Spike Rolls [12-05-03]","number":"82-03-05-0-30","hp":"7.5","rpm":"1200","volt":"600","frame":"254T","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"8A","col":8,"row":"A","desc":"C8 Debarker #2 Outfeed Rolls [12-05-06] 156D","number":"82-03-05-0-31","hp":"3","rpm":"1800","volt":"575","frame":"R800T132M8/6","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"8B","col":8,"row":"B","desc":"C8 Debarker #2 Infeed Rolls [12-05-02] 156C","number":"82-03-05-0-32","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"8C","col":8,"row":"C","desc":"C8 Spare","number":"82-03-05-0-33","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"200","height":1,"children":[]},{"pos":"9A","col":9,"row":"A","desc":"C9 Spare","number":"82-03-05-0-34","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"9B","col":9,"row":"B","desc":"C9 Debarker #2 Rotor [12-05-04] 156A","number":"82-03-05-0-35","hp":"50","rpm":"1800","volt":"600","frame":"326T","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"9C","col":9,"row":"C","desc":"C9 9' Reception Transfer [20-01-08]","number":"82-03-05-0-36","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"9D","col":9,"row":"D","desc":"C9 Debarker #2 Outfeed [12-05-09] 171","number":"82-03-05-0-37","hp":"15","rpm":"1800","volt":"600","frame":"254T","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"10A","col":10,"row":"A","desc":"C10 Spare","number":"82-03-05-0-38","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"10B","col":10,"row":"B","desc":"C10 Spare","number":"82-03-05-0-39","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"10C","col":10,"row":"C","desc":"C10 Spare","number":"82-03-05-0-40","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"10D","col":10,"row":"D","desc":"C10 Spare","number":"82-03-05-0-41","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"11A","col":11,"row":"A","desc":"C11 Spare","number":"82-03-05-0-42","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"11B","col":11,"row":"B","desc":"C11 Spare","number":"82-03-05-0-43","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"11C","col":11,"row":"C","desc":"C11 16' Mk II Landing Tank / Pattern 3 Landing Tank [20-01-05] 195","number":"82-03-05-0-44","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"11D","col":11,"row":"D","desc":"C11 Spare","number":"82-03-05-0-45","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"12A","col":12,"row":"A","desc":"C12 Spare","number":"82-03-05-0-46","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"100","height":1,"children":[]},{"pos":"12B","col":12,"row":"B","desc":"C12 Carpenter Shop Feeder","number":"82-03-05-0-47","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"12C","col":12,"row":"C","desc":"C12 Spare","number":"82-03-05-0-48","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"x","height":1,"children":[]},{"pos":"12D","col":12,"row":"D","desc":"C12 MCC #5 Control Transformer Switch","number":"82-03-05-0-49","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"12E","col":12,"row":"E","desc":"C12 MCC #5 Control Transformer","number":"82-03-05-0-50","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"13A","col":13,"row":"A","desc":"C13 Incoming","number":"82-03-05-0-51","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"13B","col":13,"row":"B","desc":"C13 MCC #5 Control Lighting Panel","number":"82-03-05-0-52","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"13C","col":13,"row":"C","desc":"C13 MCC #5 Relay Panel","number":"82-03-05-0-53","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]}],"MCC #8":[{"pos":"1A","col":1,"row":"A","desc":"C1 Unscrambler from Comact [20-06-01] 425","number":"82-03-08-0-01","hp":"2","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"1B","col":1,"row":"B","desc":"C1 Unscrambler to Edger [20-06-09] 426","number":"82-03-08-0-02","hp":"7.5","rpm":"1765","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"1C","col":1,"row":"C","desc":"C1 Arbour Assembly [20-06-22] 428A","number":"82-03-08-0-03","hp":"30","rpm":"1800","volt":"600","frame":"286T","vfd":"","breaker":"","fuse":"50","height":1,"children":[]},{"pos":"1D","col":1,"row":"D","desc":"C1 Jump Chains [20-06-11] 428C","number":"82-03-08-0-04","hp":"30 OR 3","rpm":"1200","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"1E","col":1,"row":"E","desc":"C1 Chipping Infeed Press Rolls [20-06-17] 427","number":"82-03-08-0-05","hp":"10","rpm":"1800","volt":"600","frame":"215T","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"1F","col":1,"row":"F","desc":"C1 Saw Infeed & Outfeed Press Rolls [20-06-21&25] 428","number":"82-03-08-0-06","hp":"3","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"1G","col":1,"row":"G","desc":"C1 Infeed Rollcase [20-06-12] 428D","number":"82-03-08-0-07","hp":"3","rpm":"1200","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"1H","col":1,"row":"H","desc":"C1 Outfeed Rollcase [20-06-29] 428E","number":"82-03-08-0-09","hp":"7.5 OR 3","rpm":"1200","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"1I","col":1,"row":"I","desc":"C1 Moving Chipping Head [20-06-18] 428B","number":"82-03-08-0-10","hp":"100","rpm":"1800","volt":"600","frame":"404T","vfd":"","breaker":"","fuse":"150","height":1,"children":[]}],"MCC #9":[{"pos":"1A","col":1,"row":"A","desc":"C1 Incoming","number":"82-03-09-0-01","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1B","col":1,"row":"B","desc":"C1 Spare","number":"82-03-09-0-02","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1C","col":1,"row":"C","desc":"C1 Spare","number":"82-03-09-0-03","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1D","col":1,"row":"D","desc":"C1 Trim Ends Conveyor #1 [50-01-06] 318","number":"82-03-09-0-04","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1E","col":1,"row":"E","desc":"C1 Trim Ends Conveyor #3 [50-01-11] 319A","number":"82-03-09-0-05","hp":"5","rpm":"1200","volt":"600","frame":"215T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1F","col":1,"row":"F","desc":"C1 Trim Ends Conveyor #4 [50-01-15] 319B","number":"82-03-09-0-06","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 Edger Landing Table [20-06-07] 471","number":"82-03-09-0-07","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2B","col":2,"row":"B","desc":"C2 Spare","number":"82-03-09-0-08","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2C","col":2,"row":"C","desc":"C2 Spare","number":"82-03-09-0-09","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2D","col":2,"row":"D","desc":"C2 Spare","number":"82-03-09-0-10","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2E","col":2,"row":"E","desc":"C2 Spare","number":"82-03-09-0-11","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2F","col":2,"row":"F","desc":"C2 Planer Clean Out Belt [50-01-07] 318A","number":"82-03-09-0-12","hp":"2","rpm":"1200","volt":"600","frame":"184T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C3 Welder by MSR Lab","number":"82-03-09-0-13","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3B","col":3,"row":"B","desc":"C3 Spare","number":"82-03-09-0-14","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3C","col":3,"row":"C","desc":"C3 Spare","number":"82-03-09-0-15","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3D","col":3,"row":"D","desc":"C3 Spare","number":"82-03-09-0-16","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3E","col":3,"row":"E","desc":"C3 Welder TBL","number":"82-03-09-0-17","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4A","col":4,"row":"A","desc":"C4 Spare","number":"82-03-09-0-18","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4B","col":4,"row":"B","desc":"C4 Trimmer PLC Transformer","number":"82-03-09-0-19","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4C","col":4,"row":"C","desc":"C4 Sawdust Cleanup Belt [50-01-01] 324","number":"82-03-09-0-20","hp":"1.5","rpm":"1200","volt":"600","frame":"182T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4D","col":4,"row":"D","desc":"C4 Spare","number":"82-03-09-0-21","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4E","col":4,"row":"E","desc":"C4 Electrical Shop Splitter","number":"82-03-09-0-22","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"200","height":1,"children":[]},{"pos":"4F","col":4,"row":"F","desc":"C4 Spare","number":"82-03-09-0-23","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5A","col":5,"row":"A","desc":"C5 MSR Hydraulic Pump","number":"82-03-09-0-24","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5B","col":5,"row":"B","desc":"C5 Spare","number":"82-03-09-0-25","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5C","col":5,"row":"C","desc":"C5 Spare","number":"82-03-09-0-26","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5D","col":5,"row":"D","desc":"C5 Spare","number":"82-03-09-0-27","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5E","col":5,"row":"E","desc":"C5 Spare","number":"82-03-09-0-28","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5F","col":5,"row":"F","desc":"C5 Spare","number":"82-03-09-0-29","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6A","col":6,"row":"A","desc":"C6 Radial Arm Saw at Dunnage Machine","number":"82-03-09-0-30","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6B","col":6,"row":"B","desc":"C6 Air Drier #1 [30-03-07]","number":"82-03-09-0-31","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6C","col":6,"row":"C","desc":"C6 Not Used (Compressor #4)","number":"82-03-09-0-32","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6D","col":6,"row":"D","desc":"C6 Not in service expose bus bar","number":"82-03-09-0-33","hp":"150","rpm":"1785","volt":"600","frame":"444TSC","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7A","col":7,"row":"A","desc":"C7 Warehouse heater main door","number":"82-03-09-0-34","hp":"15","rpm":"1200","volt":"600","frame":"284T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7B","col":7,"row":"B","desc":"C7 Not Used (2' Rollcase at Shipping)","number":"82-03-09-0-35","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7C","col":7,"row":"C","desc":"C7 Spare","number":"82-03-09-0-36","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7D","col":7,"row":"D","desc":"C7 Spare","number":"82-03-09-0-37","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8A","col":8,"row":"A","desc":"C8 Compressor #2 [30-04-02] 522","number":"82-03-09-0-38","hp":"200","rpm":"1785","volt":"600","frame":"44515","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8B","col":8,"row":"B","desc":"C8 Not Used (Diverter Valve)","number":"82-03-09-0-39","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8C","col":8,"row":"C","desc":"C8 Edger Hydraulic Unit [20-06-27] 429","number":"82-03-09-0-40","hp":"30","rpm":"1800","volt":"600","frame":"286T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9A","col":9,"row":"A","desc":"C9 Welder Plug","number":"82-03-09-0-41","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9B","col":9,"row":"B","desc":"C9 Compressor Blower Wall Fan","number":"82-03-09-0-42","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9C","col":9,"row":"C","desc":"C9 Spare","number":"82-03-09-0-43","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9D","col":9,"row":"D","desc":"C9 Heater #6 by Package Maker","number":"82-03-09-0-44","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9E","col":9,"row":"E","desc":"C9 Heater #7 by Shipping Door","number":"82-03-09-0-45","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9F","col":9,"row":"F","desc":"C9 Heater #8 by Shipping Door","number":"82-03-09-0-46","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"10A","col":10,"row":"A","desc":"C10 Spare","number":"82-03-09-0-47","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"10B","col":10,"row":"B","desc":"C10 Spare","number":"82-03-09-0-48","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"10C","col":10,"row":"C","desc":"C10 Heater #10 Above Maintenance office","number":"82-03-09-0-49","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"10D","col":10,"row":"D","desc":"C10 Heater #5 Old Bagging Plant","number":"82-03-09-0-50","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"10E","col":10,"row":"E","desc":"C10 Heater #6 Above shipping door","number":"82-03-09-0-51","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"10F","col":10,"row":"F","desc":"C10 Heater #7 by Warehouse","number":"82-03-09-0-52","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"11A","col":11,"row":"A","desc":"C11 Lighting Panel P (Warehouse)","number":"82-03-09-0-53","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"11B","col":11,"row":"B","desc":"C11 E4 Area Exhaust Fan red lock","number":"82-03-09-0-54","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"11C","col":11,"row":"C","desc":"C11 Feed for Bagging Plant","number":"82-03-09-0-55","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"11D","col":11,"row":"D","desc":"C11 Spare","number":"82-03-09-0-56","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"11E","col":11,"row":"E","desc":"C11 Spare","number":"82-03-09-0-57","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"11E","col":11,"row":"E","desc":"C11 Overhead Door #1","number":"82-03-09-0-58","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"11F","col":11,"row":"F","desc":"C11 Spare","number":"82-03-09-0-59","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"12A","col":12,"row":"A","desc":"C12 Not Used (PLC Control Transformer)","number":"82-03-09-0-60","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"12A","col":12,"row":"A","desc":"C12 MCC #9 Disconnect","number":"82-03-09-0-61","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"12B","col":12,"row":"B","desc":"C12 Lighting Transformer C","number":"82-03-09-0-62","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"60","height":1,"children":[]},{"pos":"12C","col":12,"row":"C","desc":"C12 Lighting Transformer D","number":"82-03-09-0-63","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"60","height":1,"children":[]},{"pos":"12D","col":12,"row":"D","desc":"C12 Lighting Transformer E","number":"82-03-09-0-64","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"60","height":1,"children":[]},{"pos":"12E","col":12,"row":"E","desc":"C12 Lighting Transformer G","number":"82-03-09-0-65","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"60","height":1,"children":[]},{"pos":"12F","col":12,"row":"F","desc":"C12 Spare","number":"82-03-09-0-66","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"13A","col":13,"row":"A","desc":"C13 Package Saw [40-07-28] 856","number":"82-03-09-0-67","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"13B","col":13,"row":"B","desc":"C13 Spare","number":"82-03-09-0-68","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"13C","col":13,"row":"C","desc":"C13 Warehouse Heater by Back Door","number":"82-03-09-0-69","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"13D","col":13,"row":"D","desc":"C13 Not Used (Capacitors)","number":"82-03-09-0-70","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"200","height":1,"children":[]},{"pos":"14A","col":14,"row":"A","desc":"C14 Warehouse Power Door","number":"82-03-09-0-71","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"14B","col":14,"row":"B","desc":"C14 Overhead Door #2","number":"82-03-09-0-72","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"14C","col":14,"row":"C","desc":"C14 Compressor #3 [30-04-03]","number":"82-03-09-0-73","hp":"150","rpm":"1785","volt":"600","frame":"445TSD","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"14D","col":14,"row":"D","desc":"C14 Compressor #1 [30-04-01]","number":"82-03-09-0-74","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]}],"MCC #10":[{"pos":"1A","col":1,"row":"A","desc":"C1 Stacker Heater by MCC #10","number":"82-03-10-0-01","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"1B","col":1,"row":"B","desc":"C1 Heaters 1-4 (Disconnect by Oiler Shop)","number":"82-03-10-0-02","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"1C","col":1,"row":"C","desc":"C1 Stacker Heater Above Operator","number":"82-03-10-0-03","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"4","height":1,"children":[]},{"pos":"1D","col":1,"row":"D","desc":"C1 Stacker Heater Facing Crane","number":"82-03-10-0-04","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"4","height":1,"children":[]},{"pos":"1E","col":1,"row":"E","desc":"C1 Sorter Even Ending Rolls [20-07-35]","number":"82-03-10-0-05","hp":"2","rpm":"1200","volt":"600","frame":"184T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"1F","col":1,"row":"F","desc":"C1 8' Land Table #2 Transition Deck to Landing Table [20-02-51]","number":"82-03-10-0-06","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 Fabrication Shop Splitter Feed","number":"82-03-10-0-07","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"200","height":1,"children":[]},{"pos":"2B","col":2,"row":"B","desc":"C2 6005 Comact","number":"82-03-10-0-08","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"2C","col":2,"row":"C","desc":"C2 Kiln Area Welding Disconnect Switch","number":"82-03-10-0-09","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"2C","col":2,"row":"C","desc":"C2 Not Used (UPS Transformer)","number":"82-03-10-0-10","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"25","height":1,"children":[]},{"pos":"2E","col":2,"row":"E","desc":"C2 8' FT Belt [20-02-50]","number":"82-03-10-0-11","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C3 Stacker Outfeed Rollcase #1 [20-10-19]","number":"82-03-10-0-12","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"3B","col":3,"row":"B","desc":"C3 Stacker Outfeed Rollcase #2 [20-10-20]","number":"82-03-10-0-13","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"3C","col":3,"row":"C","desc":"C3 Stacker Outfeed Rollcase #3 [20-10-21]","number":"82-03-10-0-14","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"3D","col":3,"row":"D","desc":"C3 Bin Discharge Deck #3 [20-10-04]","number":"82-03-10-0-15","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"4A","col":4,"row":"A","desc":"C4 Shavings Rotary Air Lock [50-06-04]","number":"82-03-10-0-16","hp":"5","rpm":"1800","volt":"600","frame":"184T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"4B","col":4,"row":"B","desc":"C4 Sorter Hydraulic Pump #2 (Bins) [20-08-07]","number":"82-03-10-0-17","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4C","col":4,"row":"C","desc":"C4 Shavings High Pressure Blower [50-06-07]","number":"82-03-10-0-18","hp":"100","rpm":"1800","volt":"600","frame":"404T","vfd":"","breaker":"","fuse":"150","height":1,"children":[]},{"pos":"5A","col":5,"row":"A","desc":"C5 Shavings Feeder [50-06-06]","number":"82-03-10-0-19","hp":"10","rpm":"1800","volt":"600","frame":"215T","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"5B","col":5,"row":"B","desc":"C5 Shavings Auger [50-06-05] 337-B","number":"82-03-10-0-20","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"70","height":1,"children":[]},{"pos":"5C","col":5,"row":"C","desc":"C5 Incline to Stacker [20-10-05]","number":"82-03-10-0-21","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"6A","col":6,"row":"A","desc":"C6 Bin Discharge Deck #2 [20-10-03]","number":"82-03-10-0-22","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"6B","col":6,"row":"B","desc":"C6 Bin Discharge Deck #1 [20-10-02]","number":"82-03-10-0-23","hp":"3","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"6C","col":6,"row":"C","desc":"C6 Bin Interchange Deck [20-10-01]","number":"82-03-10-0-24","hp":"3","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"6D","col":6,"row":"D","desc":"C6 Green Trimmer VFD Cabinet MCC-10-006-0","number":"82-03-10-0-25","hp":"3","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"7A","col":7,"row":"A","desc":"C7 Stacker Strapper [20-10-18]","number":"82-03-10-0-26","hp":"3","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"7B","col":7,"row":"B","desc":"C7 Sticker Placer Hydraulic Unit [20-10-17]","number":"82-03-10-0-27","hp":"3 OR 15","rpm":"1800","volt":"600","frame":"284T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"7C","col":7,"row":"C","desc":"C7 Feed to MW Shop Splitter #1","number":"82-03-10-0-28","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"200","height":1,"children":[]},{"pos":"7D","col":7,"row":"D","desc":"C7 Feed to MW Shop Splitter #2","number":"82-03-10-0-29","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8A","col":8,"row":"A","desc":"C8 Trimmer Saw [20-07-19]","number":"82-03-10-0-30","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"8B","col":8,"row":"B","desc":"C8 Sorter Hydraulic Pump #1 (Chains) [20-08-06]","number":"82-03-10-0-31","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"8C","col":8,"row":"C","desc":"C8 Space","number":"82-03-10-0-32","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8D","col":8,"row":"D","desc":"C8 Space","number":"82-03-10-0-33","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9A","col":9,"row":"A","desc":"C9 Stacker Pump #1 (Unscrambler) [20-10-14)","number":"82-03-10-0-34","hp":"5 OR 10","rpm":"1200","volt":"600","frame":"256T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"9B","col":9,"row":"B","desc":"C9 Stacker Pump #2 (Hoist) [20-10-15]","number":"82-03-10-0-35","hp":"5 or 25","rpm":"1800","volt":"600","frame":"284T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"9C","col":9,"row":"C","desc":"C9 Trimmer Scanner Optimizer [20-07-13]","number":"82-03-10-0-36","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"9D","col":9,"row":"D","desc":"C9 Trimmer Drop Out Belt [20-06-02]","number":"82-03-10-0-37","hp":"5 OR 7.5","rpm":"1765","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"9E","col":9,"row":"E","desc":"C9 Edger Return Deck [20-06-04]","number":"82-03-10-0-38","hp":"5","rpm":"1755","volt":"600","frame":"1841","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"10A","col":10,"row":"A","desc":"C10 Speedup Chains [20-07-05]","number":"82-03-10-0-39","hp":"5","rpm":"1750","volt":"600","frame":"184T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"10B","col":10,"row":"B","desc":"C10 Unscrambler Infeed [20-07-03]","number":"82-03-10-0-40","hp":"7.5 OR 10","rpm":"1200","volt":"600","frame":"256T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"10C","col":10,"row":"C","desc":"C10 Unscrambler to Trimmer [20-07-04]","number":"82-03-10-0-41","hp":"15","rpm":"1750","volt":"600","frame":"284T","vfd":"","breaker":"","fuse":"25","height":1,"children":[]},{"pos":"10D","col":10,"row":"D","desc":"C10 Accumulation Table [20-07-06]","number":"82-03-10-0-42","hp":"7.5 OR 3","rpm":"1200","volt":"575","frame":"DV112M6BHF","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"10E","col":10,"row":"E","desc":"C10 Backlog Table [20-07-07]","number":"82-03-10-0-43","hp":"7.5 OR 5.5","rpm":"1750","volt":"600","frame":"184T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"10F","col":10,"row":"F","desc":"C10 Edger Return Belt [20-06-06]","number":"82-03-10-0-44","hp":"5","rpm":"1200","volt":"600","frame":"215T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"11A","col":11,"row":"A","desc":"C11 Roof Exhaust E-12","number":"82-03-10-0-45","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"11B","col":11,"row":"B","desc":"C11 Stacker Crane [20-10-22]","number":"82-03-10-0-46","hp":"30","rpm":"1200","volt":"600","frame":"326T","vfd":"","breaker":"","fuse":"10","height":1,"children":[]},{"pos":"11C","col":11,"row":"C","desc":"C11 Heater #1 Above Stacker Unscrambler","number":"82-03-10-0-47","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"11D","col":11,"row":"D","desc":"C11 Heater #2 Above J-Bars","number":"82-03-10-0-48","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"11E","col":11,"row":"E","desc":"C11 Trim Ends Conveyor #7 [50-01-16]","number":"82-03-10-0-49","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"11F","col":11,"row":"F","desc":"C11 Edger Return Unscrambler [20-06-05]","number":"82-03-10-0-50","hp":"7.5","rpm":"1800","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"12A","col":12,"row":"A","desc":"C12 Blower Room Power Door","number":"82-03-10-0-51","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"12B","col":12,"row":"B","desc":"C12 Edger Return Landing Table [20-06-03]","number":"82-03-10-0-52","hp":"5","rpm":"1160","volt":"600","frame":"215T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"12C","col":12,"row":"C","desc":"C12 Garage Door MCC 10","number":"82-03-10-0-53","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"12C","col":12,"row":"C","desc":"C12 MCC #10 Control Disconnect","number":"82-03-10-0-54","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"12D","col":12,"row":"D","desc":"C12 Lighting Transformer J","number":"82-03-10-0-55","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"225","fuse":"","height":1,"children":[]},{"pos":"12E","col":12,"row":"E","desc":"C12 Not Used (LP M moved)","number":"82-03-10-0-56","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"225","fuse":"","height":1,"children":[]},{"pos":"12F","col":12,"row":"F","desc":"C12 Welding Plug","number":"82-03-10-0-57","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"60","height":1,"children":[]},{"pos":"13A","col":13,"row":"A","desc":"C13 Incoming","number":"82-03-10-0-58","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"13B","col":13,"row":"B","desc":"C13 Shavings Low Pressure Blower [50-06-02]","number":"82-03-10-0-59","hp":"125","rpm":"1800","volt":"600","frame":"444TCS","vfd":"","breaker":"","fuse":"200","height":1,"children":[]}],"MCC #11":[{"pos":"1A","col":1,"row":"A","desc":"C1 Sticker Transfer Belt [40-01-19]","number":"82-03-11-0-01","hp":"10 OR 7.5","rpm":"1200","volt":"600","frame":"254T","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"1B","col":1,"row":"B","desc":"C1 Sticker Landing Table #2 [40-01-20]","number":"82-03-11-0-02","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"1C","col":1,"row":"C","desc":"C1 Pincher Rolls [40-01-10]","number":"82-03-11-0-03","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"1D","col":1,"row":"D","desc":"C1 Strap Cutter at Unstacker","number":"82-03-11-0-04","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"1E","col":1,"row":"E","desc":"C1 Sticker Return Chains #4 [40-01-18]","number":"82-03-11-0-05","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 Stacker Rej Belt [50-01-10]","number":"82-03-11-0-06","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"2B","col":2,"row":"B","desc":"C2 Sticker Machine Outfeed Transfer [40-07-27]","number":"82-03-11-0-07","hp":"2","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"2C","col":2,"row":"C","desc":"C2 Lighting Panel U","number":"82-03-11-0-08","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"225","fuse":"","height":1,"children":[]},{"pos":"2D","col":2,"row":"D","desc":"C2 Sticker Chains to Stacker #1 [40-01-21]","number":"82-03-11-0-09","hp":"30","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"50","height":1,"children":[]},{"pos":"2E","col":2,"row":"E","desc":"C2 Sticker Chains to Stacker #2 [40-01-22]","number":"82-03-11-0-10","hp":"30","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"50","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C3 Spare Unstacker Hydraulic Unit #1 [40-01-04]","number":"82-03-11-0-11","hp":"5 OR 25","rpm":"1800","volt":"600","frame":"284T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"3B","col":3,"row":"B","desc":"C2 Infeed Transfer Deck To Tilt Hoist [40-01-34]","number":"82-03-11-0-12","hp":"20 OR 25","rpm":"1800","volt":"600","frame":"284T","vfd":"","breaker":"","fuse":"35","height":1,"children":[]},{"pos":"3C","col":3,"row":"C","desc":"C3 Heater Tilt Hoist","number":"82-03-11-0-13","hp":"2","rpm":"1200","volt":"600","frame":"184T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"3D","col":3,"row":"D","desc":"C3 Sticker Return Belt [40-01-13]","number":"82-03-11-0-14","hp":"2","rpm":"1200","volt":"600","frame":"184T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"3E","col":3,"row":"E","desc":"C3 Sticker Landing Table #1 [40-01-14]","number":"82-03-11-0-15","hp":"2","rpm":"1200","volt":"600","frame":"184T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"4A","col":4,"row":"A","desc":"C4 Sticker Return Chains #1 [40-01-15]","number":"82-03-11-0-16","hp":"3","rpm":"1200","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"4B","col":4,"row":"B","desc":"C4 Sticker Storage Deck [20-10-16]","number":"82-03-11-0-17","hp":"5","rpm":"1200","volt":"600","frame":"215T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"4C","col":4,"row":"C","desc":"C4 Sticker Return Chains #2 [40-01-16]","number":"82-03-11-0-18","hp":"10 OR 3","rpm":"1200","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"4D","col":4,"row":"D","desc":"C4 Sticker Return Chains #3 [40-01-17]","number":"82-03-11-0-19","hp":"3","rpm":"1200","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"5A","col":5,"row":"A","desc":"C5 Kiln Cart Dry End Line Winch [32-05-13]","number":"82-03-11-0-20","hp":"15","rpm":"1200","volt":"600","frame":"284T","vfd":"","breaker":"","fuse":"25","height":1,"children":[]},{"pos":"5B","col":5,"row":"B","desc":"C5 Green End Transfer Car [32-05-01]","number":"82-03-11-0-21","hp":"20","rpm":"1200","volt":"600","frame":"286T","vfd":"","breaker":"","fuse":"35","height":1,"children":[]},{"pos":"5C","col":5,"row":"C","desc":"C5 Dry End Transfer Car [32-05-11]","number":"82-03-11-0-22","hp":"20","rpm":"1200","volt":"600","frame":"286T","vfd":"","breaker":"","fuse":"35","height":1,"children":[]},{"pos":"5D","col":5,"row":"D","desc":"C5 Lighting Panel K","number":"82-03-11-0-23","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"225","fuse":"","height":1,"children":[]},{"pos":"5E","col":5,"row":"E","desc":"C5 Lighting Panel L","number":"82-03-11-0-24","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"225","fuse":"","height":1,"children":[]},{"pos":"5F","col":5,"row":"F","desc":"C5 Air Curtain","number":"82-03-11-0-25","hp":"5","rpm":"1800","volt":"600","frame":"184T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"6A","col":6,"row":"A","desc":"C6 Green End Fans Kiln #1 [32-01-01]","number":"82-03-11-0-26","hp":"40","rpm":"1200","volt":"600","frame":"364T","vfd":"","breaker":"","fuse":"70","height":1,"children":[]},{"pos":"6B","col":6,"row":"B","desc":"C6 Dry End Fans Kiln #1 [32-01-04]","number":"82-03-11-0-27","hp":"40","rpm":"1200","volt":"600","frame":"364T","vfd":"","breaker":"","fuse":"70","height":1,"children":[]},{"pos":"7A","col":7,"row":"A","desc":"C7 Green End Fans Kiln #2 [32-02-01]","number":"82-03-11-0-28","hp":"40","rpm":"1200","volt":"600","frame":"364T","vfd":"","breaker":"","fuse":"70","height":1,"children":[]},{"pos":"7B","col":7,"row":"B","desc":"C7 Dry End Fans Kiln #2 [32-02-04]","number":"82-03-11-0-29","hp":"40","rpm":"1200","volt":"600","frame":"364T","vfd":"","breaker":"","fuse":"70","height":1,"children":[]},{"pos":"8A","col":8,"row":"A","desc":"C8 Kiln Exhaust E1 [32-01-18]","number":"82-03-11-0-30","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"8B","col":8,"row":"B","desc":"C8 Kiln Exhaust E2 [32-01-19]","number":"82-03-11-0-31","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"8C","col":8,"row":"C","desc":"C8 Kiln Exhaust E3 [32-01-20]","number":"82-03-11-0-32","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"8D","col":8,"row":"D","desc":"C8 Kiln Exhaust E4 [32-01-21]","number":"82-03-11-0-33","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"8E","col":8,"row":"E","desc":"C8 NO. 6 Roll Case 40-01-31","number":"82-03-11-0-34","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"8F","col":8,"row":"F","desc":"C8 NO. 7 Roll Case 40-01-32","number":"82-03-11-0-35","hp":"10","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"9A","col":9,"row":"A","desc":"C9 NO. 1 Roll Case 40-01-26","number":"82-03-11-0-36","hp":"10","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"9B","col":9,"row":"B","desc":"C9 NO. 2 Roll Case 40-01-27","number":"82-03-11-0-37","hp":"10","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"9C","col":9,"row":"C","desc":"C9 NO. 3 Roll Case 40-01-28","number":"82-03-11-0-38","hp":"10","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"9D","col":9,"row":"D","desc":"C9 NO. 4 Roll Case 40-01-29","number":"82-03-11-0-39","hp":"10","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"9E","col":9,"row":"E","desc":"C9 NO. 5 Roll Case 40-01-30","number":"82-03-11-0-40","hp":"10","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"20","height":1,"children":[]},{"pos":"9F","col":9,"row":"F","desc":"C9 Spare Tilt Hoist Sticker Hoist","number":"82-03-11-0-41","hp":"20","rpm":"1200","volt":"600","frame":"286T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9F","col":9,"row":"F","desc":"C9 Lighting Panel V","number":"82-03-11-0-42","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"125","fuse":"","height":1,"children":[]},{"pos":"10A","col":10,"row":"A","desc":"C10 Dry South Bay Door","number":"82-03-11-0-43","hp":"3","rpm":"1800","volt":"575","frame":"R86DT100LS4","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"10B","col":10,"row":"B","desc":"C10 Outside Roll Case 40-01-23","number":"82-03-11-0-44","hp":"3","rpm":"1800","volt":"575","frame":"R86DT100LS4","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"10C","col":10,"row":"C","desc":"C10 Spare Kiln Cart Return Deck Bottom [32-04-03]","number":"82-03-11-0-45","hp":"3","rpm":"1800","volt":"575","frame":"R86DT100LS4","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"10D","col":10,"row":"D","desc":"C10 Main Office HVAC Fan","number":"82-03-11-0-46","hp":"3","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"10E","col":10,"row":"E","desc":"C10 Wood Yard Garage","number":"82-03-11-0-47","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"200","height":1,"children":[]},{"pos":"11A","col":11,"row":"A","desc":"C11 Incoming","number":"82-03-11-0-48","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"11B","col":11,"row":"B","desc":"C11 Pressure Power Pump [30-03-05]","number":"82-03-11-0-49","hp":"15","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"25","height":1,"children":[]},{"pos":"11C","col":11,"row":"C","desc":"C11 Heater in GE Kiln Sprinkler Shack","number":"82-03-11-0-50","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"11D","col":11,"row":"D","desc":"C11 Lighting Panel T - Sola Power","number":"82-03-11-0-51","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"60","height":1,"children":[]},{"pos":"11E","col":11,"row":"E","desc":"C11 Welding Plug","number":"82-03-11-0-52","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"60","height":1,"children":[]}],"MCC #11-1":[{"pos":"1A","col":1,"row":"A","desc":"C1 Stacker HYD cooler","number":"82-03-11-1-01","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1B","col":1,"row":"B","desc":"C1 Stacker Drop Out Belt [50-01-09] 319D","number":"82-03-11-1-02","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"1C","col":1,"row":"C","desc":"C1 Kiln #3 Fan #1 [32-03-01]","number":"82-03-11-1-03","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"1D","col":1,"row":"D","desc":"C1 Kiln #3 Fan #2 [32-03-02]","number":"82-03-11-1-04","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"1E","col":1,"row":"E","desc":"C1 Kiln #3 Fan #3 [32-03-03]","number":"82-03-11-1-05","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"60","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 Kiln #3 Fan #4 [32-03-04]","number":"82-03-11-1-06","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"2B","col":2,"row":"B","desc":"C2 Kiln #3 Fan #5 [32-03-05]","number":"82-03-11-1-07","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"2C","col":2,"row":"C","desc":"C2 Kiln #3 Fan #6 [32-03-06]","number":"82-03-11-1-08","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"2D","col":2,"row":"D","desc":"C2 Kiln #3 Fan #7 [32-03-07]","number":"82-03-11-1-09","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"2E","col":2,"row":"E","desc":"C2 Kiln #3 Fan #8 [32-03-08]","number":"82-03-11-1-10","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"2F","col":2,"row":"F","desc":"C2 Kiln #3 Fan #9 [32-03-09]","number":"82-03-11-1-11","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C3 Kiln Monitoring Office Lighting Panel Transformer","number":"82-03-11-1-12","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"70","height":1,"children":[]},{"pos":"3B","col":3,"row":"B","desc":"C3 Dry and Green North Bay Door","number":"82-03-11-1-13","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"3C","col":3,"row":"C","desc":"C3 Heater #35 Over Door","number":"82-03-11-1-14","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"3D","col":3,"row":"D","desc":"C3 Crane Bay Door","number":"82-03-11-1-15","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"30","height":1,"children":[]},{"pos":"3E","col":3,"row":"E","desc":"C3 Tilt Hoist Unstacker Main VFD Disconect","number":"82-03-11-1-16","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"70","height":1,"children":[]},{"pos":"4A","col":4,"row":"A","desc":"C4 Lighting Panel S","number":"82-03-11-1-17","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"225","fuse":"","height":1,"children":[]},{"pos":"4B","col":4,"row":"B","desc":"C4 Spare (green lock)","number":"82-03-11-1-18","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"70","height":1,"children":[]},{"pos":"4C","col":4,"row":"C","desc":"C4 Kiln #3 Fan #10 [32-03-10]","number":"82-03-11-1-19","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"4D","col":4,"row":"D","desc":"C4 Not Used (Condenser Fan #1)","number":"82-03-11-1-20","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"4E","col":4,"row":"E","desc":"C4 Not Used (Condenser Fan #2)","number":"82-03-11-1-21","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]}],"MCC #12":[{"pos":"1A","col":1,"row":"A","desc":"C1 Not Used (Bypass Conveyor]","number":"82-03-12-0-01","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1B","col":1,"row":"B","desc":"C1 Spare","number":"82-03-12-0-02","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1C","col":1,"row":"C","desc":"C1 Spare","number":"82-03-12-0-03","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1D","col":1,"row":"D","desc":"C1 Spare","number":"82-03-12-0-04","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 Heater Under Planer Lug Loader","number":"82-03-12-0-05","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2B","col":2,"row":"B","desc":"C2 Planer Hyd Cooling Fan","number":"82-03-12-0-06","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2C","col":2,"row":"C","desc":"C2 Spare","number":"82-03-12-0-07","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2D","col":2,"row":"D","desc":"C2 Spare","number":"82-03-12-0-08","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C3 Landing Table Fence [40-04-02] 827A","number":"82-03-12-0-09","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3B","col":3,"row":"B","desc":"C3 PET Trim Ends Belt [50-01-12] 384","number":"82-03-12-0-10","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3C","col":3,"row":"C","desc":"C3 Lighting Panel M","number":"82-03-12-0-11","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3D","col":3,"row":"D","desc":"C3 Package Maker Transfer Heater","number":"82-03-12-0-12","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4A","col":4,"row":"A","desc":"C4 MCC #12-1 & 12-2 Disconnect","number":"82-03-12-0-13","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4B","col":4,"row":"B","desc":"C4 Strapper Operator Panel / Green Lumber Transfer Switch","number":"82-03-12-0-14","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4C","col":4,"row":"C","desc":"C4 Transfer to Planer #2 [40-02-07]","number":"82-03-12-0-15","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5A","col":5,"row":"A","desc":"C5 Spare UH Heater #5","number":"82-03-12-0-16","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5B","col":5,"row":"B","desc":"C5 Lighting Panel H","number":"82-03-12-0-17","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5C","col":5,"row":"C","desc":"C5 TX-DP-04 AutoLog 460V Transformer","number":"82-03-12-0-18","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5C","col":5,"row":"C","desc":"C5 MCC #12 Control Panel","number":"82-03-12-0-19","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5D","col":5,"row":"D","desc":"C5 Planer Shop Disconnect (planer room splitter)","number":"82-03-12-0-20","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5E","col":5,"row":"E","desc":"C5 Sticker Machine [40-07-26] 821","number":"82-03-12-0-21","hp":"7.5","rpm":"1200","volt":"600","frame":"254T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6A","col":6,"row":"A","desc":"C6 Dry Trim Ends Belt [50-01-13] 385","number":"82-03-12-0-22","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6B","col":6,"row":"B","desc":"C6 Heater over Package Maker","number":"82-03-12-0-23","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6C","col":6,"row":"C","desc":"C6 Not Used (Middle Transfer Deck to Planer 816)","number":"82-03-12-0-24","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6D","col":6,"row":"D","desc":"C6 Top Deck Transfer [40-02-01] 816A","number":"82-03-12-0-25","hp":"5","rpm":"1200","volt":"600","frame":"215T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6E","col":6,"row":"E","desc":"C6 Trimmer Waste Conveyor [50-01-14] 385A","number":"82-03-12-0-26","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6F","col":6,"row":"F","desc":"C6 Spare UH Heater #4","number":"82-03-12-0-27","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7A","col":7,"row":"A","desc":"C7 Spare Planer Grinder","number":"82-03-12-0-28","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7B","col":7,"row":"B","desc":"C7 Landing Table [40-04-01] 827","number":"82-03-12-0-29","hp":"5","rpm":"1200","volt":"600","frame":"215T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7C","col":7,"row":"C","desc":"C7 Surge Table [40-04-03] 828","number":"82-03-12-0-30","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7D","col":7,"row":"D","desc":"C7 TX-DP-03","number":"82-03-12-0-31","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7E","col":7,"row":"E","desc":"C7 Exhaust Fan","number":"82-03-12-0-32","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7F","col":7,"row":"F","desc":"C7 Angled S-Chains [40-02-05] 816C","number":"82-03-12-0-33","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8A","col":8,"row":"A","desc":"C8 Spare","number":"82-03-12-0-34","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8B","col":8,"row":"B","desc":"C8 VFD1 Prograder VFD Enclosure infeed and outfeed rollers","number":"82-03-12-0-35","hp":"3","rpm":"1800","volt":"600","frame":"182T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8C","col":8,"row":"C","desc":"C8 Slow Down Belt [40-03-27] 826","number":"82-03-12-0-36","hp":"3","rpm":"1800","volt":"600","frame":"182T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8D","col":8,"row":"D","desc":"C8 VFD2 Planer Outfeed Motor Control Bridge","number":"82-03-12-0-37","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8E","col":8,"row":"E","desc":"C8 Office Exhaust E-10","number":"82-03-12-0-38","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9A","col":9,"row":"A","desc":"C9 Incoming","number":"82-03-12-0-39","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9B","col":9,"row":"B","desc":"C9 Lath Machine Saw [40-07-25]","number":"82-03-12-0-40","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9C","col":9,"row":"C","desc":"C9 Lath Machine Rolls [40-07-25]","number":"82-03-12-0-41","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9D","col":9,"row":"D","desc":"C9 Sticker Machine Clean Out Belt #1 [50-01-04] 316","number":"82-03-12-0-42","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9E","col":9,"row":"E","desc":"C9 Sticker Machine Clean Out Belt #2 [50-01-05] 317","number":"82-03-12-0-43","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"10A","col":10,"row":"A","desc":"C10 Left Head [40-03-09]","number":"82-03-12-0-44","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"10B","col":10,"row":"B","desc":"C10 Pump Assembly #1 [40-03-18]","number":"82-03-12-0-45","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"10C","col":10,"row":"C","desc":"C10 Pump Assembly #2 [40-03-19]","number":"82-03-12-0-46","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"11A","col":11,"row":"A","desc":"C11 Transfer to Planer #1 [40-02-06] 819","number":"82-03-12-0-47","hp":"5","rpm":"1800","volt":"600","frame":"184T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"11B","col":11,"row":"B","desc":"C11 Bottom Deck Transfer [40-02-03] 816B","number":"82-03-12-0-48","hp":"15","rpm":"2500","volt":"600","frame":"B2510AT2","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"11C","col":11,"row":"C","desc":"C11 Parking Lot Feed","number":"82-03-12-0-49","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"11D","col":11,"row":"D","desc":"C11 Pump Assembly #3 [40-03-20]","number":"82-03-12-0-50","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"12A","col":12,"row":"A","desc":"C12 Right Head [40-03-10]","number":"82-03-12-0-51","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"12B","col":12,"row":"B","desc":"C12 Spare VAB Blower","number":"82-03-12-0-52","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"12C","col":12,"row":"C","desc":"C12 Spare VAB Camera Blower","number":"82-03-12-0-53","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"12D","col":12,"row":"D","desc":"C12 Spare UV Camera Blower","number":"82-03-12-0-54","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]}],"MCC #13":[{"pos":"1A","col":1,"row":"A","desc":"C1 Incoming","number":"82-03-13-0-01","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1B","col":1,"row":"B","desc":"C1 Chip Cross Conveyor [50-01-03] 329","number":"82-03-13-0-02","hp":"3","rpm":"1200","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"1C","col":1,"row":"C","desc":"C1 Trim Ends Conveyor #6 [50-01-17] 325","number":"82-03-13-0-03","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"1D","col":1,"row":"D","desc":"C1 Not Used (Vibrating Waste Conveyor)","number":"82-03-13-0-04","hp":"15","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"25","height":1,"children":[]},{"pos":"1E","col":1,"row":"E","desc":"C1 Vibrating Waste Conveyor [50-01-18] 327","number":"82-03-13-0-05","hp":"15","rpm":"1200","volt":"600","frame":"284T","vfd":"","breaker":"","fuse":"25","height":1,"children":[]},{"pos":"1F","col":1,"row":"F","desc":"C1 Spare","number":"82-03-13-0-06","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 Hoist Comact Saw Line","number":"82-03-13-0-07","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2B","col":2,"row":"B","desc":"C2 Waste Wood Chipper [50-01-19] 331","number":"82-03-13-0-08","hp":"150 OR 200","rpm":"1200","volt":"600","frame":"447T","vfd":"","breaker":"","fuse":"250","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C3 Spare Chip Bin Auger #1 [50-04-04]","number":"82-03-13-0-09","hp":"7.5 OR 10","rpm":"1200","volt":"600","frame":"256T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"3B","col":3,"row":"B","desc":"C3 Spare Chip Bin Auger #2 [50-04-05]","number":"82-03-13-0-10","hp":"7.5 OR 10","rpm":"1200","volt":"600","frame":"256T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"3C","col":3,"row":"C","desc":"C3 Chip Screen #1 [50-03-01] 336","number":"82-03-13-0-11","hp":"10 OR 5","rpm":"1200","volt":"600","frame":"215T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"3D","col":3,"row":"D","desc":"C3 Spare Chip Screen #2 [50-03-02]","number":"82-03-13-0-12","hp":"10 OR 5","rpm":"1200","volt":"600","frame":"215T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"3E","col":3,"row":"E","desc":"C3 Overs Conveyor #1 [50-04-11] 338","number":"82-03-13-0-13","hp":"1.5 OR 10","rpm":"1800","volt":"600","frame":"215T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"3F","col":3,"row":"F","desc":"C3 Overs Conveyor #2 [50-04-12] 339","number":"82-03-13-0-14","hp":"3","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"4A","col":4,"row":"A","desc":"C4 Headrig Chip Belt [50-04-02] 365","number":"82-03-13-0-15","hp":"7.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"4B","col":4,"row":"B","desc":"C4 Chip Blower #1 [50-04-07] 342","number":"82-03-13-0-16","hp":"200","rpm":"1200","volt":"600","frame":"586T","vfd":"","breaker":"","fuse":"300","height":1,"children":[]},{"pos":"5A","col":5,"row":"A","desc":"C5 Chip Feeder #1 [50-04-06] 343","number":"82-03-13-0-17","hp":"5 OR 15","rpm":"1800","volt":"600","frame":"254T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"5B","col":5,"row":"B","desc":"C5 Vibrating Sawdust Conveyor [50-05-04] 347","number":"82-03-13-0-18","hp":"15","rpm":"1200","volt":"600","frame":"284T","vfd":"","breaker":"","fuse":"25","height":1,"children":[]},{"pos":"5C","col":5,"row":"C","desc":"C5 Lighting Panel Transformer M320 1ph 10kva 600 / 120 240 LP MCC13 M320 125 amp","number":"82-03-13-0-19","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"5D","col":5,"row":"D","desc":"C5 Sawdust Blower [50-05-08] 380","number":"82-03-13-0-20","hp":"60","rpm":"1800","volt":"600","frame":"364T","vfd":"","breaker":"","fuse":"100","height":1,"children":[]},{"pos":"6A","col":6,"row":"A","desc":"C6 Sawdust Feeder [50-05-07] 381","number":"82-03-13-0-21","hp":"3 OR 5","rpm":"1800","volt":"600","frame":"184T","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"6B","col":6,"row":"B","desc":"C6 Sawdust Conveyor [50-05-05] 336A","number":"82-03-13-0-22","hp":"5","rpm":"1800","volt":"600","frame":"184T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6C","col":6,"row":"C","desc":"C6 Sawdust Drag Chain [50-05-06] 336B","number":"82-03-13-0-23","hp":"3","rpm":"1200","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6D","col":6,"row":"D","desc":"C6 Not Used (Iron Worker)","number":"82-03-13-0-24","hp":"0.5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"6E","col":6,"row":"E","desc":"C6 Lighting Panel B","number":"82-03-13-0-25","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"60","height":1,"children":[]},{"pos":"6F","col":6,"row":"F","desc":"C6 Headrig Chip Belt Timer Relay [50-04-02] 349 Relay","number":"82-03-13-0-26","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7A","col":7,"row":"A","desc":"C7 Main Bark Conveyor [50-07-13] 349","number":"82-03-13-0-27","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7B","col":7,"row":"B","desc":"C7 Not in service M348 Bark Conveyor","number":"82-03-13-0-28","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7C","col":7,"row":"C","desc":"C7 PDC Exhaust Fan","number":"82-03-13-0-29","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7D","col":7,"row":"D","desc":"C7 Chip Bin Conveyor [50-04-03] 334","number":"82-03-13-0-30","hp":"40","rpm":"1800","volt":"600","frame":"324T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7E","col":7,"row":"E","desc":"C7 Space","number":"82-03-13-0-31","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8A","col":8,"row":"A","desc":"C8 Space","number":"82-03-13-0-32","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8B","col":8,"row":"B","desc":"C8 Hydraulic Shop Splitter","number":"82-03-13-0-33","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8C","col":8,"row":"C","desc":"C8 Space","number":"82-03-13-0-34","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8C","col":8,"row":"C","desc":"C8 MCC #13 Control Power 5kva1ph  600/ 120 240V Control power panel 6 70 amp","number":"82-03-13-0-35","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"8D","col":8,"row":"D","desc":"C8 Sawdust Conveyor #1 [50-05-02]","number":"82-03-13-0-36","hp":"7.5","rpm":"1800","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8E","col":8,"row":"E","desc":"C8 Sawdust Conveyor #2 [50-05-03]","number":"82-03-13-0-37","hp":"7.5","rpm":"1800","volt":"600","frame":"213T","vfd":"","breaker":"","fuse":"","height":1,"children":[]}],"MCC #16":[{"pos":"1A","col":1,"row":"A","desc":"C1 Incoming","number":"82-03-16-0-01","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1B","col":1,"row":"B","desc":"C1 Planer Shop Welder","number":"82-03-16-0-02","hp":"75","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"125","height":1,"children":[]},{"pos":"1C","col":1,"row":"C","desc":"C1 Bottom Head [40-03-04]","number":"82-03-16-0-03","hp":"50","rpm":"3600","volt":"600","frame":"324TC","vfd":"","breaker":"","fuse":"90","height":1,"children":[]},{"pos":"1D","col":1,"row":"D","desc":"C1 Planer PLC Power Lighting Panel X ?","number":"82-03-16-0-04","hp":"50","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"90","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 Spare UV Tank Heater","number":"82-03-16-0-05","hp":"5","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"15","height":1,"children":[]},{"pos":"2B","col":2,"row":"B","desc":"C2 Heater Over Conveyor 3 (Red lock)","number":"82-03-16-0-06","hp":"15","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"25","height":1,"children":[]},{"pos":"2D","col":2,"row":"D","desc":"C2 Lighting Panel DD - MSR Office","number":"82-03-16-0-07","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2C","col":2,"row":"C","desc":"C2 Planer Tension Pump","number":"82-03-16-0-08","hp":"50","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"90","height":1,"children":[]},{"pos":"2D","col":2,"row":"D","desc":"C2 Lighting Panel Z","number":"82-03-16-0-09","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C3 Accumulation Table [40-04-04] Lug Loader ABB VFD Panel","number":"82-03-16-0-10","hp":"3","rpm":"1800","volt":"600","frame":"182T","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C3 Backlog Table [40-04-05] Lug Loader ABB VFD Panel","number":"82-03-16-0-11","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C3 Load Transfer Table [40-04-06] Lug Loader ABB VFD Panel","number":"82-03-16-0-12","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3B","col":3,"row":"B","desc":"C3 Top Head [40-03-02]","number":"82-03-16-0-13","hp":"50","rpm":"3600","volt":"600","frame":"324TC","vfd":"","breaker":"","fuse":"","height":1,"children":[]}],"MCC #18-0":[{"pos":"1A","col":1,"row":"A","desc":"C1 Wide Belt to Comact #1 [20-03-13]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1U","col":1,"row":"U","desc":"C1 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 Space (Old 20-03-18)","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2J","col":2,"row":"J","desc":"C2 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2N","col":2,"row":"N","desc":"C2 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2R","col":2,"row":"R","desc":"C2 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2V","col":2,"row":"V","desc":"C2 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C3 Accumulation Transfer [20-03-18]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3J","col":3,"row":"J","desc":"C3 Log Pusher [20-03-17]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3O","col":3,"row":"O","desc":"C3 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3R","col":3,"row":"R","desc":"C3 Incoming (Main Bkr MCC18-0 From PDC #2) Log Tanks","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]}],"MCC #18-1":[{"pos":"1A","col":1,"row":"A","desc":"C1 Incoming (Main Bkr MCC18-1 From PDC #2)","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 [20-04-15]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C3 [20-04-26]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4A","col":4,"row":"A","desc":"C4 [20-04-14]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5A","col":5,"row":"A","desc":"C5 [20-14-25]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6A","col":6,"row":"A","desc":"C6 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6D","col":6,"row":"D","desc":"C6 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6G","col":6,"row":"G","desc":"C6 Spare 30A","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6K","col":6,"row":"K","desc":"C6 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6N","col":6,"row":"N","desc":"C6 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6Q","col":6,"row":"Q","desc":"C6 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6U","col":6,"row":"U","desc":"C6 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7A","col":7,"row":"A","desc":"C7 VFD Feeder F18-2","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7S","col":7,"row":"S","desc":"C7 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7V","col":7,"row":"V","desc":"C7 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]}],"MCC #19-0":[{"pos":"1A","col":1,"row":"A","desc":"C1 Remote Control JB-M32","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2E","col":2,"row":"E","desc":"C2 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2I","col":2,"row":"I","desc":"C2 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2M","col":2,"row":"M","desc":"C2 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2P","col":2,"row":"P","desc":"C2 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2S","col":2,"row":"S","desc":"C2 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2V","col":2,"row":"V","desc":"C2 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C3 [20-04-30]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4A","col":4,"row":"A","desc":"C4 [20-04-31]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5A","col":5,"row":"A","desc":"C5 [20-04-32]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6A","col":6,"row":"A","desc":"C6 [20-04-33]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7A","col":7,"row":"A","desc":"C7 [20-04-29]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7S","col":7,"row":"S","desc":"C7 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7V","col":7,"row":"V","desc":"C7 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8A","col":8,"row":"A","desc":"C8 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8D","col":8,"row":"D","desc":"C8 [20-04-42]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8G","col":8,"row":"G","desc":"C8 [20-04-43]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8J","col":8,"row":"J","desc":"C8 [20-04-44]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8M","col":8,"row":"M","desc":"C8 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8P","col":8,"row":"P","desc":"C8 [20-04-41]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8S","col":8,"row":"S","desc":"C8 [20-04-40]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8V","col":8,"row":"V","desc":"C8 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9A","col":9,"row":"A","desc":"C9 Spare 30A","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9E","col":9,"row":"E","desc":"C9 Spare 30A","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9I","col":9,"row":"I","desc":"C9 Spare 20hp","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9N","col":9,"row":"N","desc":"C9 [20-04-37]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9Q","col":9,"row":"Q","desc":"C9 [20-04-38]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9T","col":9,"row":"T","desc":"C9 [20-04-39]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9W","col":9,"row":"W","desc":"C9 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"10A","col":10,"row":"A","desc":"C10 Incoming Main Bkr From PDC #1","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]}],"MCC #19-1":[{"pos":"1A","col":1,"row":"A","desc":"C1 [20-04-47]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1G","col":1,"row":"G","desc":"C1 [20-04-50]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1J","col":1,"row":"J","desc":"C1 [20-04-49]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1M","col":1,"row":"M","desc":"C1 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1P","col":1,"row":"P","desc":"C1 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1R","col":1,"row":"R","desc":"C1 Incoming Main Brk From PDC #1","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 [20-04-48]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2S","col":2,"row":"S","desc":"C2 [20-04-45]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2V","col":2,"row":"V","desc":"C2 [20-04-46]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]}],"MCC #20-0":[{"pos":"1A","col":1,"row":"A","desc":"C1 Incoming from PDC #2","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 VFD Feeder F20-A2","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2I","col":2,"row":"I","desc":"C2 Spare 60A","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2M","col":2,"row":"M","desc":"C2 Spare 30A","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2Q","col":2,"row":"Q","desc":"C2 Spare 20HP","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2V","col":2,"row":"V","desc":"C2 Spare 10HP","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3A","col":3,"row":"A","desc":"C2 Spare 20HP","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3F","col":3,"row":"F","desc":"C3 TBL Outfeed Rollcase Conveyor [20-05-21]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3I","col":3,"row":"I","desc":"C3 TBL Outfeed Slat Bed Transfer [20-05-22]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3L","col":3,"row":"L","desc":"C3 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3O","col":3,"row":"O","desc":"C3 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3R","col":3,"row":"R","desc":"C3 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"3U","col":3,"row":"U","desc":"C3 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"4A","col":4,"row":"A","desc":"C4 Left Chipping Head [20-05-13]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"5A","col":5,"row":"A","desc":"C5 Right Chipping Head [20-05-14]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"6A","col":6,"row":"A","desc":"C6 Bottom Saw Arbor #1 [20-05-15]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"7A","col":7,"row":"A","desc":"C7 Bottom Saw Arbor #2 [20-05-16]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8A","col":8,"row":"A","desc":"C8 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8D","col":8,"row":"D","desc":"C8 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8G","col":8,"row":"G","desc":"C8 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8J","col":8,"row":"J","desc":"C8 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8M","col":8,"row":"M","desc":"C8 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8Q","col":8,"row":"Q","desc":"C8 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"8U","col":8,"row":"U","desc":"C8 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"9A","col":9,"row":"A","desc":"C9 Remote Control JB-M40","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]}],"MCC #20-1":[{"pos":"1A","col":1,"row":"A","desc":"C1 Cooling fan [20-05-28]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1D","col":1,"row":"D","desc":"C1 Saw Guides Pump [20-05-26]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1G","col":1,"row":"G","desc":"C1 Recirculating Pump [20-05-27]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1J","col":1,"row":"J","desc":"C1 Saw Guides Oil Lub Pump [20-05-23]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1M","col":1,"row":"M","desc":"C1 Saw Guide water Lube Pump [20-05-24]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1P","col":1,"row":"P","desc":"C1 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"1R","col":1,"row":"R","desc":"C1 Incoming from PDC #2","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2A","col":2,"row":"A","desc":"C2 TBL HPU Pump [20-05-25]","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2S","col":2,"row":"S","desc":"C2 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]},{"pos":"2V","col":2,"row":"V","desc":"C2 Space","number":"","hp":"","rpm":"","volt":"600","frame":"","vfd":"","breaker":"","fuse":"","height":1,"children":[]}]};
+
+// Load saved state or use raw data
+let mccData = JSON.parse(localStorage.getItem('mcc-visual-v1') || 'null') || deepClone(RAW_MCC);
+
+function deepClone(o){return JSON.parse(JSON.stringify(o));}
+function save(){localStorage.setItem('mcc-visual-v1', JSON.stringify(mccData));}
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let currentMCC  = null;
+let selectedPos = null;
+let editChildIdx = -1;
+let editChildBucketPos = null;
+
+const CHILD_FIELDS = {
+  MTR: [
+    {id:'hp',    label:'HP',           placeholder:'20'},
+    {id:'volt',  label:'Voltage (V)',   placeholder:'600'},
+    {id:'rpm',   label:'RPM',           placeholder:'1800'},
+    {id:'frame', label:'Frame',         placeholder:'256T'},
+    {id:'fla',   label:'FLA (A)',        placeholder:'28'},
+    {id:'overload',label:'Overload (A)',placeholder:'26'},
+    {id:'sf',    label:'Service Factor',placeholder:'1.15'},
+    {id:'enc',   label:'Enclosure',     placeholder:'TEFC'},
+    {id:'bde',   label:'Drive End Brg', placeholder:'6308-ZZ-C3'},
+    {id:'bfe',   label:'Fan End Brg',   placeholder:'6308-ZZ-C3'},
+    {id:'mfr',   label:'Manufacturer',  placeholder:'WEG'},
+    {id:'model', label:'Model / Part#', placeholder:''},
+    {id:'serial',label:'Serial #',      placeholder:''},
+    {id:'notes', label:'Notes',         placeholder:'',type:'textarea'},
+  ],
+  VFD: [
+    {id:'brand', label:'Brand / Model', placeholder:'AB PowerFlex 525'},
+    {id:'hp',    label:'HP Rating',     placeholder:'20'},
+    {id:'volt',  label:'Input Voltage', placeholder:'600'},
+    {id:'params',label:'Params Backed Up?', placeholder:'NO'},
+    {id:'serial',label:'Serial #',      placeholder:''},
+    {id:'notes', label:'Notes',         placeholder:'',type:'textarea'},
+  ],
+  LD: [
+    {id:'size',  label:'Ampere Rating', placeholder:'60A'},
+    {id:'type',  label:'Type',          placeholder:'Fusible / Non-fusible'},
+    {id:'fuse',  label:'Fuse Size',     placeholder:'60A / Class J'},
+    {id:'volt',  label:'Voltage',       placeholder:'600V'},
+    {id:'nema',  label:'NEMA Enclosure',placeholder:'NEMA 12'},
+    {id:'mfr',   label:'Manufacturer',  placeholder:'Square D'},
+    {id:'notes', label:'Notes',         placeholder:'',type:'textarea'},
+  ],
+  PNL: [
+    {id:'volt',  label:'Voltage',       placeholder:'600/120V'},
+    {id:'main',  label:'Main Breaker',  placeholder:'100A'},
+    {id:'spaces',label:'Spaces',        placeholder:'12'},
+    {id:'type',  label:'Type',          placeholder:'Load Center / Dist Panel'},
+    {id:'mfr',   label:'Manufacturer',  placeholder:'Siemens'},
+    {id:'notes', label:'Notes',         placeholder:'',type:'textarea'},
+  ],
+  JB: [
+    {id:'size',  label:'Box Size',      placeholder:'12x12x6'},
+    {id:'nema',  label:'NEMA Rating',   placeholder:'NEMA 12'},
+    {id:'notes', label:'Notes',         placeholder:'',type:'textarea'},
+  ],
+  XFMR: [
+    {id:'kva',   label:'KVA Rating',    placeholder:'5'},
+    {id:'primary',label:'Primary (V)',  placeholder:'600'},
+    {id:'secondary',label:'Secondary (V)',placeholder:'120/240'},
+    {id:'mfr',   label:'Manufacturer',  placeholder:''},
+    {id:'notes', label:'Notes',         placeholder:'',type:'textarea'},
+  ],
+  SPL: [
+    {id:'feeds', label:'# of Feeds',    placeholder:'4'},
+    {id:'size',  label:'Main Size (A)', placeholder:'200'},
+    {id:'notes', label:'Notes',         placeholder:'',type:'textarea'},
+  ],
+};
+
+const TYPE_ICON = {MTR:'🔴',VFD:'🔵',LD:'🟢',PNL:'🟣',JB:'⚪',XFMR:'🟡',SPL:'🟠'};
+const TYPE_LABEL= {MTR:'MOTOR',VFD:'VFD',LD:'LOCAL DISC',PNL:'PANEL',JB:'J-BOX',XFMR:'XFMR',SPL:'SPLITTER'};
+const TYPE_CSS  = {MTR:'type-mtr',VFD:'type-vfd',LD:'type-ld',PNL:'type-pnl',JB:'type-jb',XFMR:'type-xfmr',SPL:'type-spl'};
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const sel = document.getElementById('mcc-sel');
+  Object.keys(mccData).sort().forEach(mcc => {
+    const o = document.createElement('option');
+    o.value = mcc; o.textContent = mcc + ' (' + mccData[mcc].length + ' buckets)';
+    sel.appendChild(o);
+  });
+});
+
+// ── MCC SELECTION ─────────────────────────────────────────────────────────
+function selectMCC(mcc) {
+  if (!mcc) return;
+  currentMCC  = mcc;
+  selectedPos = null;
+  closeDetail();
+  renderList();
+  renderVisual();
+}
+
+// ── BUCKET LIST ───────────────────────────────────────────────────────────
+function renderList() {
+  if (!currentMCC) return;
+  const q    = document.getElementById('sb-q').value.toLowerCase();
+  const filt = document.getElementById('sb-filter').value;
+  const buckets = mccData[currentMCC] || [];
+
+  const filtered = buckets.filter(b => {
+    const matchQ = !q || b.desc.toLowerCase().includes(q) || b.pos.toLowerCase().includes(q);
+    const matchF = !filt || (b.children||[]).some(c => c.type === filt) ||
+      (filt==='VFD' && b.vfd);
+    return matchQ && matchF;
+  });
+
+  const list = document.getElementById('bucket-list');
+  if (!filtered.length) {
+    list.innerHTML = '<div class="no-buckets">No buckets match</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(b => {
+    const children = b.children || [];
+    const hasVfd = b.vfd || children.some(c=>c.type==='VFD');
+    const isActive = b.pos === selectedPos;
+    const isExpanded = b._expanded;
+    const childrenHTML = children.map((c,ci) => `
+      <div class="bl-child">
+        <span class="bl-child-icon">${TYPE_ICON[c.type]||'⚪'}</span>
+        <span class="bl-child-name">${c.name||c.type}</span>
+        <span class="bl-child-edit" onclick="event.stopPropagation();openEditChild('${b.pos}',${ci})">✎</span>
+      </div>`).join('');
+
+    return `<div class="bl-item ${isActive?'active':''} ${isExpanded?'expanded':''}" id="bli-${b.pos}">
+      <div class="bl-header" onclick="onListClick('${b.pos}')">
+        <span class="bl-pos">${b.pos}</span>
+        <div style="flex:1;min-width:0">
+          <div class="bl-desc">${b.desc}</div>
+          <div class="bl-meta">${b.hp?b.hp+'HP · ':''}${b.volt||'600'}V${hasVfd?' · VFD':''}</div>
+        </div>
+        ${children.length?`<span class="bl-chevron">▶</span>`:''}
+      </div>
+      ${children.length||isActive?`<div class="bl-children">
+        ${childrenHTML}
+        <div class="bl-add-child" onclick="event.stopPropagation();openAddChild('${b.pos}')">+ Add equipment</div>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function onListClick(pos) {
+  const bucket = getBucket(pos);
+  if (!bucket) return;
+
+  // toggle expanded in list
+  bucket._expanded = !bucket._expanded;
+
+  // select & highlight
+  selectedPos = pos;
+  renderList();
+  renderVisual();
+  openDetail(pos);
+  scrollToBucket(pos);
+}
+
+// ── VISUAL MCC ────────────────────────────────────────────────────────────
+function renderVisual() {
+  if (!currentMCC) return;
+  const buckets = mccData[currentMCC] || [];
+  const wrap = document.getElementById('mcc-wrap');
+
+  // group by column
+  const cols = {};
+  buckets.forEach(b => {
+    if (!cols[b.col]) cols[b.col] = [];
+    cols[b.col].push(b);
+  });
+  const colNums = Object.keys(cols).map(Number).sort((a,b)=>a-b);
+  const unitH = 48; // px per unit
+
+  let html = `
+    <div class="mcc-title"><span>${currentMCC}</span></div>
+    <div class="mcc-subtitle">${buckets.length} BUCKETS · ${colNums.length} COLUMNS</div>
+    <div class="mcc-controls">
+      <span class="mcc-ctrl-label">COLUMN WIDTH (px):</span>
+      <input class="mcc-ctrl-input" type="number" id="col-w-inp" value="130" min="80" max="300" oninput="updateColWidth(this.value)">
+      <span class="mcc-ctrl-label" style="margin-left:10px">UNIT HEIGHT (px):</span>
+      <input class="mcc-ctrl-input" type="number" id="unit-h-inp" value="48" min="24" max="120" oninput="updateUnitH(this.value)">
+    </div>
+    <div class="mcc-cabinet" id="mcc-cabinet">
+      <div class="mcc-cabinet-label">${currentMCC} CABINET LAYOUT</div>`;
+
+  colNums.forEach(colNum => {
+    const colBuckets = cols[colNum].sort((a,b) => a.row.localeCompare(b.row));
+    html += `<div class="mcc-col">
+      <div class="mcc-col-label">C${colNum}</div>`;
+
+    colBuckets.forEach(b => {
+      const h = (b.height||1) * unitH;
+      const isHL  = b.pos === selectedPos;
+      const hasC  = (b.children||[]).length > 0;
+      const hasVfd= b.vfd || (b.children||[]).some(c=>c.type==='VFD');
+      const cls   = [
+        'mcc-bucket',
+        isHL  ? 'highlighted' : '',
+        hasC  ? 'has-children': '',
+        hasVfd && !hasC ? 'vfd' : '',
+      ].filter(Boolean).join(' ');
+
+      html += `<div class="${cls}" id="mb-${b.pos}"
+        style="height:${h}px"
+        onclick="onBucketClick('${b.pos}')"
+        title="${b.pos} — ${b.desc}">
+        <div class="mb-pos">${b.pos}</div>
+        <div class="mb-desc">${b.desc}</div>
+        ${b.hp ? `<div class="mb-hp">${b.hp}HP${b.volt?' · '+b.volt+'V':''}</div>` : ''}
+        <div class="mb-indicator">
+          ${hasC ? '<div class="mb-dot" style="background:var(--green)"></div>' : ''}
+          ${hasVfd ? '<div class="mb-dot" style="background:var(--blue)"></div>' : ''}
+        </div>
+      </div>`;
+    });
+
+    html += `</div>`;
+  });
+
+  html += `</div>`;
+  wrap.innerHTML = html;
+}
+
+function onBucketClick(pos) {
+  selectedPos = pos;
+  const bucket = getBucket(pos);
+  if (bucket) bucket._expanded = true;
+  renderList();
+  renderVisual();
+  openDetail(pos);
+  // scroll list item into view
+  const li = document.getElementById('bli-'+pos);
+  if (li) li.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+
+function scrollToBucket(pos) {
+  setTimeout(() => {
+    const el = document.getElementById('mb-'+pos);
+    if (el) el.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
+  }, 50);
+}
+
+function updateColWidth(val) {
+  document.documentElement.style.setProperty('--col-w', val+'px');
+}
+function updateUnitH(val) {
+  // re-render with new unit height stored
+  const unitH = parseInt(val) || 48;
+  const cab = document.getElementById('mcc-cabinet');
+  if (!cab) return;
+  document.querySelectorAll('.mcc-bucket').forEach(el => {
+    const pos = el.id.replace('mb-','');
+    const b = getBucket(pos);
+    if (b) el.style.height = ((b.height||1)*unitH)+'px';
+  });
+}
+
+// ── DETAIL PANEL ──────────────────────────────────────────────────────────
+function openDetail(pos) {
+  const b = getBucket(pos);
+  if (!b) return;
+  document.getElementById('dp-pos').textContent  = pos + ' — ' + currentMCC;
+  document.getElementById('dp-desc').textContent = b.desc;
+  document.getElementById('dp-mcc').textContent  = (b.transformer||'') + (b.pdc?' → '+b.pdc:'');
+
+  const body = document.getElementById('dp-body');
+  const children = b.children || [];
+
+  body.innerHTML = `
+    <div class="dp-sec">Bucket Info</div>
+    ${dpRow('Position', b.pos)}
+    ${dpRow('Voltage', b.volt||'600V')}
+    ${dpRow('HP', b.hp||'—')}
+    ${dpRow('Breaker', b.breaker||'—')}
+    ${dpRow('Fuse', b.fuse||'—')}
+    ${dpRow('VFD Drive', b.vfd||'—')}
+    <div class="dp-row">
+      <span class="dp-key">HEIGHT (units)</span>
+      <div class="dp-height-ctrl">
+        <button onclick="changeBucketHeight('${pos}',-1)">−</button>
+        <span class="dp-height-val" id="dp-h-val">${b.height||1}</span>
+        <button onclick="changeBucketHeight('${pos}',1)">+</button>
+      </div>
+    </div>
+
+    <div class="dp-sec">Connected Equipment</div>
+    ${children.map((c,i) => `
+      <div class="dp-child" id="dpc-${i}">
+        <div class="dp-child-hdr" onclick="toggleChild(${i})">
+          <span class="dp-child-icon">${TYPE_ICON[c.type]||'⚪'}</span>
+          <span class="dp-child-name">${c.name||c.type}</span>
+          <span class="dp-child-type ${TYPE_CSS[c.type]||''}">${TYPE_LABEL[c.type]||c.type}</span>
+        </div>
+        <div class="dp-child-body">
+          ${Object.entries(c).filter(([k])=>!['type','name','_id'].includes(k)&&c[k]).map(([k,v])=>
+            `<div class="dp-child-row"><span class="dp-child-key">${k.toUpperCase()}</span><span class="dp-child-val">${v}</span></div>`
+          ).join('')}
+          <div style="margin-top:6px;display:flex;gap:6px">
+            <button class="dp-add-btn" style="flex:1" onclick="openEditChild('${pos}',${i})">✎ Edit</button>
+          </div>
+        </div>
+      </div>`).join('')}
+    <button class="dp-add-btn" onclick="openAddChild('${pos}')">+ Add Equipment to this Bucket</button>
+  `;
+
+  document.getElementById('detail-panel').classList.remove('collapsed');
+}
+
+function dpRow(key, val) {
+  return `<div class="dp-row"><span class="dp-key">${key}</span><span class="dp-val">${val}</span></div>`;
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.add('collapsed');
+  selectedPos = null;
+}
+
+function toggleChild(i) {
+  const el = document.getElementById('dpc-'+i);
+  if (el) el.classList.toggle('open');
+}
+
+function changeBucketHeight(pos, delta) {
+  const b = getBucket(pos);
+  if (!b) return;
+  b.height = Math.max(1, Math.min(10, (b.height||1) + delta));
+  document.getElementById('dp-h-val').textContent = b.height;
+  save();
+  // update visual height
+  const unitH = parseInt(document.getElementById('unit-h-inp')?.value)||48;
+  const el = document.getElementById('mb-'+pos);
+  if (el) el.style.height = (b.height * unitH)+'px';
+  toast('Height updated: '+b.height+' units');
+}
+
+// ── ADD / EDIT CHILD ──────────────────────────────────────────────────────
+function openAddChild(pos) {
+  editChildBucketPos = pos;
+  editChildIdx = -1;
+  document.getElementById('add-modal-title').textContent = 'Add Equipment to ' + pos;
+  document.getElementById('child-name').value = '';
+  document.getElementById('child-type').value = 'MTR';
+  document.getElementById('btn-del-child').style.display = 'none';
+  updateChildFields();
+  document.getElementById('add-modal').classList.add('show');
+}
+
+function openEditChild(pos, idx) {
+  editChildBucketPos = pos;
+  editChildIdx = idx;
+  const b = getBucket(pos);
+  const c = b.children[idx];
+  document.getElementById('add-modal-title').textContent = 'Edit Equipment — ' + pos;
+  document.getElementById('child-type').value = c.type;
+  document.getElementById('child-name').value = c.name||'';
+  document.getElementById('btn-del-child').style.display = 'inline-block';
+  updateChildFields(c);
+  document.getElementById('add-modal').classList.add('show');
+}
+
+function updateChildFields(existing) {
+  const type   = document.getElementById('child-type').value;
+  const fields = CHILD_FIELDS[type] || [];
+  document.getElementById('child-fields').innerHTML = fields.map(f => `
+    <div class="mf">
+      <label>${f.label}</label>
+      ${f.type==='textarea'
+        ? `<textarea id="cf-${f.id}" placeholder="${f.placeholder}">${existing&&existing[f.id]||''}</textarea>`
+        : `<input type="text" id="cf-${f.id}" placeholder="${f.placeholder}" value="${existing&&existing[f.id]||''}">`}
+    </div>`).join('');
+}
+
+function saveChild() {
+  const type  = document.getElementById('child-type').value;
+  const name  = document.getElementById('child-name').value.trim();
+  const fields= CHILD_FIELDS[type]||[];
+  const child = {type, name};
+  fields.forEach(f => {
+    const el = document.getElementById('cf-'+f.id);
+    if (el && el.value.trim()) child[f.id] = el.value.trim();
+  });
+
+  const b = getBucket(editChildBucketPos);
+  if (!b.children) b.children = [];
+  if (editChildIdx >= 0) b.children[editChildIdx] = child;
+  else b.children.push(child);
+
+  save(); closeAddModal();
+  renderList(); renderVisual(); openDetail(editChildBucketPos);
+  toast('✓ Equipment saved');
+}
+
+function deleteChild() {
+  const b = getBucket(editChildBucketPos);
+  if (!b||editChildIdx<0) return;
+  if (!confirm('Delete this equipment?')) return;
+  b.children.splice(editChildIdx,1);
+  save(); closeAddModal();
+  renderList(); renderVisual(); openDetail(editChildBucketPos);
+  toast('🗑 Equipment deleted');
+}
+
+function closeAddModal() { document.getElementById('add-modal').classList.remove('show'); }
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+function getBucket(pos) {
+  if (!currentMCC) return null;
+  return (mccData[currentMCC]||[]).find(b => b.pos === pos);
+}
+
+function toggleLegend() { document.getElementById('legend-modal').classList.add('show'); }
+function closeLegend()  { document.getElementById('legend-modal').classList.remove('show'); }
+
+function exportData() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(mccData,null,2)],{type:'application/json'}));
+  a.download = 'mcc-layout-' + new Date().toISOString().split('T')[0] + '.json';
+  a.click(); toast('✓ Data exported');
+}
+function importData() { document.getElementById('file-import').click(); }
+function handleImport(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      mccData = JSON.parse(ev.target.result);
+      save();
+      location.reload();
+    } catch { toast('✗ Invalid JSON file', true); }
+  };
+  reader.readAsText(file);
+}
+
+let toastT;
+function toast(msg, err) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.borderColor=err?'var(--red)':'var(--green)';
+  t.style.color=err?'var(--red)':'var(--green)'; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>
