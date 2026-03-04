@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equipment Entry — Sawmill Electrical Library</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080c10;
+  --surface: #0d1520;
+  --card: #111c2a;
+  --border: #1a2d42;
+  --border-lit: #2a4a66;
+  --accent: #f59e0b;
+  --accent-dim: rgba(245,158,11,.15);
+  --blue: #38bdf8;
+  --blue-dim: rgba(56,189,248,.12);
+  --green: #22c55e;
+  --red: #ef4444;
+  --text: #cdd9e8;
+  --muted: #4a6280;
+  --mono: 'Share Tech Mono', monospace;
+  --head: 'Rajdhani', sans-serif;
+  --body: 'Barlow', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,.07) 2px,
+    rgba(0,0,0,.07) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* grid bg */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(56,189,248,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56,189,248,.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+}
+
+.app { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 32px 20px 80px; }
+
+/* ── HEADER ── */
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-area {}
+.logo-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: .12em;
+  margin-bottom: 4px;
+}
+h1 {
+  font-family: var(--head);
+  font-weight: 700;
+  font-size: 1.6rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+h1 span { color: var(--accent); }
+
+.record-count {
+  text-align: right;
+}
+.count-num {
+  font-family: var(--mono);
+  font-size: 2rem;
+  color: var(--blue);
+  line-height: 1;
+}
+.count-label { font-size: 11px; color: var(--muted); letter-spacing: .06em; }
+
+/* ── PROGRESS BAR ── */
+.progress-bar-wrap {
+  margin-bottom: 28px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 14px 18px;
+  display: flex; align-items: center; gap: 16px;
+}
+.pb-label { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+.pb-track { flex: 1; height: 6px; background: var(--border); }
+.pb-fill { height: 100%; background: var(--accent); transition: width .4s ease; width: 0%; }
+.pb-pct { font-family: var(--mono); font-size: 12px; color: var(--accent); white-space: nowrap; }
+
+/* ── TABS ── */
+.tabs {
+  display: flex; gap: 2px; margin-bottom: 20px;
+}
+.tab {
+  font-family: var(--head);
+  font-weight: 600;
+  font-size: .85rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 9px 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s;
+  user-select: none;
+}
+.tab:hover { color: var(--text); border-color: var(--border-lit); }
+.tab.active {
+  background: var(--surface);
+  color: var(--accent);
+  border-color: var(--accent);
+  border-bottom: 1px solid var(--surface);
+  position: relative; bottom: -1px;
+}
+
+/* ── FORM PANEL ── */
+.form-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 28px;
+  display: none;
+}
+.form-panel.active { display: block; }
+
+.section-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--blue);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.section-label::before {
+  content: '';
+  display: inline-block; width: 5px; height: 5px;
+  background: var(--blue); transform: rotate(45deg);
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.field-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.field-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.field-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.field-full { grid-column: 1 / -1; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.field label .req { color: var(--accent); margin-left: 2px; }
+
+.field input,
+.field select,
+.field textarea {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 13px;
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color .15s, background .15s;
+  width: 100%;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--accent);
+  background: #131e2e;
+}
+.field select option { background: var(--card); }
+.field textarea { resize: vertical; min-height: 70px; }
+
+/* status badges in select */
+.field input[type="number"] { -moz-appearance: textfield; }
+
+/* ── RADIO TOGGLE ── */
+.radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.radio-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+  letter-spacing: .06em;
+  transition: all .15s;
+  user-select: none;
+}
+.radio-btn:hover { border-color: var(--border-lit); color: var(--text); }
+.radio-btn.selected {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+.radio-btn.selected-blue {
+  border-color: var(--blue);
+  background: var(--blue-dim);
+  color: var(--blue);
+}
+
+/* ── ACTIONS ── */
+.form-actions {
+  display: flex; gap: 12px; margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.btn {
+  font-family: var(--head);
+  font-weight: 700;
+  font-size: .9rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 11px 28px;
+  border: none;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #000;
+}
+.btn-primary:hover { background: #fbbf24; }
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border-lit);
+  color: var(--text);
+}
+.btn-secondary:hover { border-color: var(--blue); color: var(--blue); }
+.btn-export {
+  background: transparent;
+  border: 1px solid var(--green);
+  color: var(--green);
+  margin-left: auto;
+}
+.btn-export:hover { background: rgba(34,197,94,.1); }
+.btn-danger {
+  background: transparent;
+  border: 1px solid var(--red);
+  color: var(--red);
+}
+.btn-danger:hover { background: rgba(239,68,68,.1); }
+
+/* ── SUCCESS TOAST ── */
+.toast {
+  position: fixed; bottom: 32px; right: 32px;
+  background: var(--card);
+  border: 1px solid var(--green);
+  color: var(--green);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 12px 20px;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: all .3s;
+  z-index: 1000;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── RECORD LIST ── */
+.record-list-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 20px;
+  margin-top: 24px;
+}
+.record-list-hdr {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px;
+}
+.record-list-title {
+  font-family: var(--head);
+  font-weight: 700;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--blue);
+}
+.filter-bar {
+  display: flex; gap: 8px;
+}
+.filter-bar input, .filter-bar select {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 10px;
+  outline: none;
+}
+.filter-bar input:focus, .filter-bar select:focus { border-color: var(--blue); }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead tr { background: var(--card); }
+thead th {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody tr { border-bottom: 1px solid rgba(26,45,66,.5); transition: background .1s; }
+tbody tr:hover { background: rgba(56,189,248,.04); }
+tbody td { padding: 8px 10px; color: var(--text); }
+.badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 2px 7px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.badge-motor  { background: rgba(245,158,11,.15); color: var(--accent); border: 1px solid rgba(245,158,11,.3); }
+.badge-vfd    { background: rgba(56,189,248,.12); color: var(--blue);   border: 1px solid rgba(56,189,248,.3); }
+.badge-panel  { background: rgba(139,92,246,.12); color: #a78bfa;       border: 1px solid rgba(139,92,246,.3); }
+.badge-other  { background: rgba(100,114,128,.12);color: var(--muted);  border: 1px solid rgba(100,114,128,.3);}
+.badge-ok     { background: rgba(34,197,94,.12);  color: var(--green);  border: 1px solid rgba(34,197,94,.3); }
+.badge-missing{ background: rgba(239,68,68,.12);  color: var(--red);    border: 1px solid rgba(239,68,68,.3); }
+.badge-partial{ background: rgba(245,158,11,.12); color: var(--accent); border: 1px solid rgba(245,158,11,.3);}
+
+.action-icon {
+  cursor: pointer; color: var(--muted); font-size: 13px; padding: 0 4px;
+  transition: color .15s;
+}
+.action-icon:hover { color: var(--red); }
+.action-edit:hover { color: var(--blue) !important; }
+
+.empty-state {
+  text-align: center; padding: 48px 20px;
+  color: var(--muted); font-family: var(--mono); font-size: 12px;
+}
+.empty-icon { font-size: 32px; margin-bottom: 12px; }
+
+@media(max-width:640px){
+  .field-grid.cols-3,
+  .field-grid.cols-4 { grid-template-columns: 1fr 1fr; }
+  .field-grid.cols-2 { grid-template-columns: 1fr; }
+  .top-bar { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .form-actions { flex-direction: column; }
+  .btn-export { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="logo-area">
+      <div class="logo-tag">SAWMILL ELECTRICAL LIBRARY</div>
+      <h1>Equipment <span>Data Entry</span></h1>
+    </div>
+    <div class="record-count">
+      <div class="count-num" id="total-count">0</div>
+      <div class="count-label">RECORDS ENTERED</div>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-bar-wrap">
+    <span class="pb-label">COMPLETION</span>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill"></div></div>
+    <span class="pb-pct" id="pb-pct">0%</span>
+    <span class="pb-label" style="color:var(--text)" id="pb-detail">0 / 0 fields filled</span>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('identification')">① Identification</div>
+    <div class="tab" onclick="switchTab('electrical')">② Electrical</div>
+    <div class="tab" onclick="switchTab('documentation')">③ Documentation</div>
+    <div class="tab" onclick="switchTab('maintenance')">④ Maintenance</div>
+  </div>
+
+  <!-- ══ TAB 1: IDENTIFICATION ══ -->
+  <div class="form-panel active" id="tab-identification">
+
+    <div class="section-label">Asset Identification</div>
+    <div class="field-grid cols-3">
+      <div class="field">
+        <label>Asset ID / Tag <span class="req">*</span></label>
+        <input type="text" id="asset-id" placeholder="e.g. MTR-12-10-09" oninput="updateProgress()">
+      </div>
+      <div class="field">
+        <label>WRFP # (Storeroom)</label>
+        <input type="text" id="wrfp" placeholder="e.g. 24813" oninput="updateProgress()">
+      </div>
+      <div class="field">
+        <label>MCC # / Bucket Position</label>
+        <input type="text" id="mcc-pos" placeholder="e.g. MCC1 — 1B" oninput="updateProgress()">
+      </div>
+    </div>
+
+    <div class="section-label">Location</div>
+    <div class="field-grid cols-2">
+      <div class="field">
+        <label>Area <span class="req">*</span></label>
+        <select id="area" onchange="updateSubArea(); updateProgress()">
+          <option value="">— Select Area —</option>
+          <option value="SAWMILL">SAWMILL</option>
+          <option value="PLANER">PLANER</option>
+          <option value="BOILER HOUSE">BOILER HOUSE</option>
+          <option value="KILNS">KILNS</option>
+          <option value="RESIDUALS">RESIDUALS</option>
+          <option value="YARD">YARD</option>
+          <option value="FUEL HOUSE">FUEL HOUSE</option>
+          <option value="FIRE PUMP HOUSE">FIRE PUMP HOUSE</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Sub-Area <span class="req">*</span></label>
+        <select id="subarea" onchange="updateProgress()">
+          <option value="">— Select Area first —</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-label">Equipment</div>
+    <div class="field-grid cols-2">
+      <div class="field field-full">
+        <label>Description <span class="req">*</span></label>
+        <input type="text" id="description" placeholder="e.g. Debarker 5 Loading Deck Motor" oninput="updateProgress()">
+      </div>
+    </div>
+    <div class="field-grid cols-3">
+      <div class="field">
+        <label>Equipment Type <span class="req">*</span></label>
+        <div class="radio-group" id="eq-type-group">
+          <div class="radio-btn selected" onclick="selectRadio(this,'eq-type','MTR')">MOTOR</div>
+          <div class="radio-btn" onclick="selectRadio(this,'eq-type','VFD')">VFD</div>
+          <div class="radio-btn" onclick="selectRadio(this,'eq-type','PNL')">PANEL</div>
+          <div class="radio-btn" onclick="selectRadio(this,'eq-type','JB')">J-BOX</div>
+          <div class="radio-btn" onclick="selectRadio(this,'eq-type','DS')">DISCONNECT</div>
+          <div class="radio-btn" onclick="selectRadio(this,'eq-type','BCKT')">BUCKET</div>
+          <div class="radio-btn" onclick="selectRadio(this,'eq-type','OTHER')">OTHER</div>
+        </div>
+        <input type="hidden" id="eq-type" value="MTR">
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB 2: ELECTRICAL ══ -->
+  <div class="form-panel" id="tab-electrical">
+
+    <div class="section-label">Motor Specs</div>
+    <div class="field-grid cols-4">
+      <div class="field">
+        <label>HP</label>
+        <input type="number" id="hp" placeholder="e.g. 20" oninput="updateProgress()">
+      </div>
+      <div class="field">
+        <label>Voltage (V)</label>
+        <select id="voltage" onchange="updateProgress()">
+          <option value="">—</option>
+          <option value="600" selected>600V</option>
+          <option value="575">575V</option>
+          <option value="480">480V</option>
+          <option value="240">240V</option>
+          <option value="120">120V</option>
+          <option value="24VDC">24V DC</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>RPM</label>
+        <select id="rpm" onchange="updateProgress()">
+          <option value="">—</option>
+          <option value="3600">3600</option>
+          <option value="1800">1800</option>
+          <option value="1200">1200</option>
+          <option value="900">900</option>
+          <option value="720">720</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Frame</label>
+        <input type="text" id="frame" placeholder="e.g. 256T" oninput="updateProgress()">
+      </div>
+    </div>
+
+    <div class="field-grid cols-4">
+      <div class="field">
+        <label>FLA (Amps)</label>
+        <input type="number" id="fla" placeholder="e.g. 28" step="0.1" oninput="updateProgress()">
+      </div>
+      <div class="field">
+        <label>Service Factor</label>
+        <select id="sf" onchange="updateProgress()">
+          <option value="">—</option>
+          <option value="1.0">1.0</option>
+          <option value="1.15">1.15</option>
+          <option value="1.25">1.25</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Enclosure</label>
+        <select id="enclosure" onchange="updateProgress()">
+          <option value="">—</option>
+          <option value="TEFC">TEFC</option>
+          <option value="ODP">ODP</option>
+          <option value="TENV">TENV</option>
+          <option value="EXP">EXP-PROOF</option>
+          <option value="WPI">WP-I</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Phases</label>
+        <div class="radio-group">
+          <div class="radio-btn selected" onclick="selectRadio(this,'phases','3')">3Ø</div>
+          <div class="radio-btn" onclick="selectRadio(this,'phases','1')">1Ø</div>
+          <div class="radio-btn" onclick="selectRadio(this,'phases','DC')">DC</div>
+        </div>
+        <input type="hidden" id="phases" value="3">
+      </div>
+    </div>
+
+    <div class="section-label">Drive & Protection</div>
+    <div class="field-grid cols-3">
+      <div class="field">
+        <label>Has VFD?</label>
+        <div class="radio-group">
+          <div class="radio-btn" onclick="selectRadio(this,'has-vfd','YES'); toggleVFD(true)">YES</div>
+          <div class="radio-btn selected" onclick="selectRadio(this,'has-vfd','NO'); toggleVFD(false)">NO</div>
+          <div class="radio-btn" onclick="selectRadio(this,'has-vfd','SOFT'); toggleVFD(false)">SOFT START</div>
+        </div>
+        <input type="hidden" id="has-vfd" value="NO">
+      </div>
+      <div class="field" id="vfd-brand-field" style="opacity:.4;pointer-events:none">
+        <label>VFD Brand / Model</label>
+        <input type="text" id="vfd-model" placeholder="e.g. Allen Bradley PowerFlex 525" oninput="updateProgress()">
+      </div>
+      <div class="field" id="vfd-params-field" style="opacity:.4;pointer-events:none">
+        <label>VFD Params Documented?</label>
+        <div class="radio-group">
+          <div class="radio-btn" onclick="selectRadio(this,'vfd-params','YES')">YES</div>
+          <div class="radio-btn selected" onclick="selectRadio(this,'vfd-params','NO')">NO</div>
+        </div>
+        <input type="hidden" id="vfd-params" value="NO">
+      </div>
+    </div>
+
+    <div class="field-grid cols-4">
+      <div class="field">
+        <label>Breaker Size (A)</label>
+        <input type="number" id="breaker" placeholder="e.g. 100" oninput="updateProgress()">
+      </div>
+      <div class="field">
+        <label>Overload Setpoint (A)</label>
+        <input type="number" id="overload" placeholder="e.g. 26" step="0.1" oninput="updateProgress()">
+      </div>
+      <div class="field">
+        <label>Fuse (A)</label>
+        <input type="number" id="fuse" placeholder="e.g. 30" oninput="updateProgress()">
+      </div>
+      <div class="field">
+        <label>Wire Size</label>
+        <input type="text" id="wire" placeholder="e.g. #4 AWG" oninput="updateProgress()">
+      </div>
+    </div>
+
+    <div class="section-label">Bearings (Drive / Fan End)</div>
+    <div class="field-grid cols-2">
+      <div class="field">
+        <label>Drive End Bearing</label>
+        <input type="text" id="bearing-de" placeholder="e.g. 6308-ZZ-C3" oninput="updateProgress()">
+      </div>
+      <div class="field">
+        <label>Fan End Bearing</label>
+        <input type="text" id="bearing-fe" placeholder="e.g. 6308-ZZ-C3" oninput="updateProgress()">
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB 3: DOCUMENTATION ══ -->
+  <div class="form-panel" id="tab-documentation">
+
+    <div class="section-label">Drawing References</div>
+    <div class="field-grid cols-2">
+      <div class="field">
+        <label>Electrical Drawing #</label>
+        <input type="text" id="drawing-elec" placeholder="e.g. DEBARKER-E-5101" oninput="updateProgress()">
+      </div>
+      <div class="field">
+        <label>Instrument Drawing #</label>
+        <input type="text" id="drawing-inst" placeholder="e.g. DEBARKER-I-3120" oninput="updateProgress()">
+      </div>
+      <div class="field">
+        <label>Mechanical Drawing #</label>
+        <input type="text" id="drawing-mech" placeholder="e.g. DEBARKER-M-2010" oninput="updateProgress()">
+      </div>
+      <div class="field">
+        <label>PLC / I/O Drawing #</label>
+        <input type="text" id="drawing-plc" placeholder="e.g. DEBARKER-PLC-001" oninput="updateProgress()">
+      </div>
+    </div>
+
+    <div class="section-label">Manuals & Documentation Status</div>
+    <div class="field-grid cols-3">
+      <div class="field">
+        <label>Manufacturer Manual</label>
+        <div class="radio-group">
+          <div class="radio-btn" onclick="selectRadio(this,'manual-status','DIGITAL')">DIGITAL ✓</div>
+          <div class="radio-btn" onclick="selectRadio(this,'manual-status','PAPER')">PAPER ONLY</div>
+          <div class="radio-btn selected" onclick="selectRadio(this,'manual-status','MISSING')">MISSING</div>
+        </div>
+        <input type="hidden" id="manual-status" value="MISSING">
+      </div>
+      <div class="field">
+        <label>Drawing Status</label>
+        <div class="radio-group">
+          <div class="radio-btn" onclick="selectRadio(this,'drawing-status','CURRENT')">CURRENT ✓</div>
+          <div class="radio-btn" onclick="selectRadio(this,'drawing-status','OUTDATED')">OUTDATED</div>
+          <div class="radio-btn selected" onclick="selectRadio(this,'drawing-status','MISSING')">MISSING</div>
+        </div>
+        <input type="hidden" id="drawing-status" value="MISSING">
+      </div>
+      <div class="field">
+        <label>QR Code Installed?</label>
+        <div class="radio-group">
+          <div class="radio-btn" onclick="selectRadio(this,'qr-installed','YES')">YES</div>
+          <div class="radio-btn selected" onclick="selectRadio(this,'qr-installed','NO')">NO</div>
+        </div>
+        <input type="hidden" id="qr-installed" value="NO">
+      </div>
+    </div>
+
+    <div class="field-grid cols-2">
+      <div class="field">
+        <label>Manufacturer / Brand</label>
+        <input type="text" id="manufacturer" placeholder="e.g. WEG, Baldor, Siemens" oninput="updateProgress()">
+      </div>
+      <div class="field">
+        <label>Model / Part Number</label>
+        <input type="text" id="model-num" placeholder="e.g. EW2-20-36-143T" oninput="updateProgress()">
+      </div>
+      <div class="field">
+        <label>Serial Number</label>
+        <input type="text" id="serial" placeholder="e.g. A12345678" oninput="updateProgress()">
+      </div>
+      <div class="field">
+        <label>Installation Date</label>
+        <input type="date" id="install-date" oninput="updateProgress()">
+      </div>
+    </div>
+
+    <div class="section-label">Priority & Status</div>
+    <div class="field-grid cols-2">
+      <div class="field">
+        <label>Criticality</label>
+        <div class="radio-group">
+          <div class="radio-btn selected" onclick="selectRadio(this,'criticality','CRITICAL','red')">🔴 CRITICAL</div>
+          <div class="radio-btn" onclick="selectRadio(this,'criticality','HIGH','amber')">🟡 HIGH</div>
+          <div class="radio-btn" onclick="selectRadio(this,'criticality','STANDARD','blue')">🟢 STANDARD</div>
+        </div>
+        <input type="hidden" id="criticality" value="CRITICAL">
+      </div>
+      <div class="field">
+        <label>Spare in Stock?</label>
+        <div class="radio-group">
+          <div class="radio-btn" onclick="selectRadio(this,'spare','YES')">YES</div>
+          <div class="radio-btn selected" onclick="selectRadio(this,'spare','NO')">NO</div>
+          <div class="radio-btn" onclick="selectRadio(this,'spare','PARTIAL')">PARTIAL</div>
+        </div>
+        <input type="hidden" id="spare" value="NO">
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB 4: MAINTENANCE ══ -->
+  <div class="form-panel" id="tab-maintenance">
+
+    <div class="section-label">Preventive Maintenance</div>
+    <div class="field-grid cols-3">
+      <div class="field">
+        <label>PM Frequency</label>
+        <select id="pm-freq" onchange="updateProgress()">
+          <option value="">—</option>
+          <option value="WEEKLY">Weekly</option>
+          <option value="MONTHLY">Monthly</option>
+          <option value="QUARTERLY">Quarterly</option>
+          <option value="SEMI-ANNUAL">Semi-Annual</option>
+          <option value="ANNUAL">Annual</option>
+          <option value="AS NEEDED">As Needed</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Last PM Date</label>
+        <input type="date" id="last-pm" oninput="updateProgress()">
+      </div>
+      <div class="field">
+        <label>Next PM Date</label>
+        <input type="date" id="next-pm" oninput="updateProgress()">
+      </div>
+    </div>
+
+    <div class="section-label">PM Tasks Included</div>
+    <div class="field-grid cols-4">
+      <div class="field">
+        <label>Tasks</label>
+        <div class="radio-group" id="pm-tasks-group" style="flex-wrap:wrap; gap:6px">
+          <div class="radio-btn" onclick="toggleMulti(this)">Thermography</div>
+          <div class="radio-btn" onclick="toggleMulti(this)">Clean Up</div>
+          <div class="radio-btn" onclick="toggleMulti(this)">Loose Connections</div>
+          <div class="radio-btn" onclick="toggleMulti(this)">Moisture Inspect</div>
+          <div class="radio-btn" onclick="toggleMulti(this)">VFD Maintenance</div>
+          <div class="radio-btn" onclick="toggleMulti(this)">Megger Test</div>
+          <div class="radio-btn" onclick="toggleMulti(this)">Lubrication</div>
+          <div class="radio-btn" onclick="toggleMulti(this)">Vibration Check</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Notes & Known Issues</div>
+    <div class="field-grid">
+      <div class="field field-full">
+        <label>Maintenance Notes / Known Issues</label>
+        <textarea id="notes" placeholder="Enter any known issues, recurring faults, special procedures, or important observations..." oninput="updateProgress()"></textarea>
+      </div>
+      <div class="field field-full">
+        <label>Troubleshooting Notes</label>
+        <textarea id="ts-notes" placeholder="Common fault symptoms and solutions for this equipment..." oninput="updateProgress()"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="form-actions">
+    <button class="btn btn-secondary" onclick="clearForm()">Clear Form</button>
+    <button class="btn btn-primary" onclick="saveRecord()">⚡ Save Equipment Record</button>
+    <button class="btn btn-export" onclick="exportCSV()">↓ Export to CSV</button>
+  </div>
+
+  <!-- RECORD LIST -->
+  <div class="record-list-panel">
+    <div class="record-list-hdr">
+      <div class="record-list-title">Saved Records</div>
+      <div class="filter-bar">
+        <input type="text" id="filter-text" placeholder="Search..." oninput="renderTable()">
+        <select id="filter-area" onchange="renderTable()">
+          <option value="">All Areas</option>
+          <option>SAWMILL</option><option>PLANER</option>
+          <option>BOILER HOUSE</option><option>KILNS</option>
+          <option>RESIDUALS</option><option>YARD</option>
+          <option>FUEL HOUSE</option><option>FIRE PUMP HOUSE</option>
+        </select>
+        <select id="filter-type" onchange="renderTable()">
+          <option value="">All Types</option>
+          <option value="MTR">MOTOR</option>
+          <option value="VFD">VFD</option>
+          <option value="PNL">PANEL</option>
+          <option value="JB">J-BOX</option>
+          <option value="DS">DISCONNECT</option>
+          <option value="BCKT">BUCKET</option>
+        </select>
+      </div>
+    </div>
+    <div id="table-wrap">
+      <div class="empty-state">
+        <div class="empty-icon">⚡</div>
+        No records yet — fill the form and save your first equipment record
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+const SUB_AREAS = {
+  "SAWMILL":         ["Debarking","Handling Tanks","Sawlines","Trimmer","Sorter","Stacker","Overhead Crane","General"],
+  "PLANER":          ["Unstacker","Planer","Prograder","Grading Station","Trimmer","Sorter","Package Maker","Strapper Wrapper","General"],
+  "BOILER HOUSE":    ["Boiler","Feed Water","Fuel System","Controls","General"],
+  "KILNS":           ["Kiln 1","Kiln 2","Kiln 3","Controls","HX","General"],
+  "RESIDUALS":       ["Chip System","Sawdust","Bark","General"],
+  "YARD":            ["Scales","Gates","Lighting","Cameras","General"],
+  "FUEL HOUSE":      ["Fuel Pumps","Storage","Controls","General"],
+  "FIRE PUMP HOUSE": ["Jockey Pump","Main Diesel Pump","Electric Pump","Panel","General"],
+};
+
+let records = JSON.parse(localStorage.getItem('eq-records') || '[]');
+let editIndex = -1;
+
+// ── SUB-AREA ──────────────────────────────────────────────────────────────
+function updateSubArea() {
+  const area = document.getElementById('area').value;
+  const sel = document.getElementById('subarea');
+  sel.innerHTML = '<option value="">— Select Sub-Area —</option>';
+  (SUB_AREAS[area] || []).forEach(s => {
+    const o = document.createElement('option');
+    o.value = s; o.textContent = s;
+    sel.appendChild(o);
+  });
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+// ── RADIO ─────────────────────────────────────────────────────────────────
+function selectRadio(el, fieldId, value, style) {
+  const group = el.parentElement;
+  group.querySelectorAll('.radio-btn').forEach(b => {
+    b.classList.remove('selected','selected-blue');
+  });
+  el.classList.add(style === 'blue' ? 'selected-blue' : 'selected');
+  document.getElementById(fieldId).value = value;
+  updateProgress();
+}
+
+function toggleMulti(el) {
+  el.classList.toggle('selected');
+  updateProgress();
+}
+
+// ── VFD TOGGLE ────────────────────────────────────────────────────────────
+function toggleVFD(on) {
+  ['vfd-brand-field','vfd-params-field'].forEach(id => {
+    document.getElementById(id).style.opacity = on ? '1' : '.4';
+    document.getElementById(id).style.pointerEvents = on ? 'auto' : 'none';
+  });
+}
+
+// ── PROGRESS ──────────────────────────────────────────────────────────────
+const KEY_FIELDS = ['asset-id','area','subarea','description','eq-type','hp','voltage','drawing-elec','manufacturer'];
+
+function updateProgress() {
+  let filled = 0;
+  KEY_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.value && el.value.trim() !== '' && el.value !== '0') filled++;
+  });
+  const pct = Math.round((filled / KEY_FIELDS.length) * 100);
+  document.getElementById('pb-fill').style.width = pct + '%';
+  document.getElementById('pb-pct').textContent = pct + '%';
+  document.getElementById('pb-detail').textContent = filled + ' / ' + KEY_FIELDS.length + ' key fields';
+}
+
+// ── SAVE ──────────────────────────────────────────────────────────────────
+function getFormData() {
+  const pmTasks = [];
+  document.querySelectorAll('#pm-tasks-group .radio-btn.selected').forEach(b => pmTasks.push(b.textContent.trim()));
+
+  return {
+    assetId:       document.getElementById('asset-id').value.trim(),
+    wrfp:          document.getElementById('wrfp').value.trim(),
+    mccPos:        document.getElementById('mcc-pos').value.trim(),
+    area:          document.getElementById('area').value,
+    subarea:       document.getElementById('subarea').value,
+    description:   document.getElementById('description').value.trim(),
+    type:          document.getElementById('eq-type').value,
+    hp:            document.getElementById('hp').value,
+    voltage:       document.getElementById('voltage').value,
+    rpm:           document.getElementById('rpm').value,
+    frame:         document.getElementById('frame').value.trim(),
+    fla:           document.getElementById('fla').value,
+    sf:            document.getElementById('sf').value,
+    enclosure:     document.getElementById('enclosure').value,
+    phases:        document.getElementById('phases').value,
+    hasVfd:        document.getElementById('has-vfd').value,
+    vfdModel:      document.getElementById('vfd-model').value.trim(),
+    vfdParams:     document.getElementById('vfd-params').value,
+    breaker:       document.getElementById('breaker').value,
+    overload:      document.getElementById('overload').value,
+    fuse:          document.getElementById('fuse').value,
+    wire:          document.getElementById('wire').value.trim(),
+    bearingDE:     document.getElementById('bearing-de').value.trim(),
+    bearingFE:     document.getElementById('bearing-fe').value.trim(),
+    drawingElec:   document.getElementById('drawing-elec').value.trim(),
+    drawingInst:   document.getElementById('drawing-inst').value.trim(),
+    drawingMech:   document.getElementById('drawing-mech').value.trim(),
+    drawingPLC:    document.getElementById('drawing-plc').value.trim(),
+    manualStatus:  document.getElementById('manual-status').value,
+    drawingStatus: document.getElementById('drawing-status').value,
+    qrInstalled:   document.getElementById('qr-installed').value,
+    manufacturer:  document.getElementById('manufacturer').value.trim(),
+    modelNum:      document.getElementById('model-num').value.trim(),
+    serial:        document.getElementById('serial').value.trim(),
+    installDate:   document.getElementById('install-date').value,
+    criticality:   document.getElementById('criticality').value,
+    spare:         document.getElementById('spare').value,
+    pmFreq:        document.getElementById('pm-freq').value,
+    lastPM:        document.getElementById('last-pm').value,
+    nextPM:        document.getElementById('next-pm').value,
+    pmTasks:       pmTasks.join(', '),
+    notes:         document.getElementById('notes').value.trim(),
+    tsNotes:       document.getElementById('ts-notes').value.trim(),
+    savedAt:       new Date().toISOString().split('T')[0],
+  };
+}
+
+function saveRecord() {
+  const data = getFormData();
+  if (!data.assetId || !data.area || !data.description) {
+    showToast('⚠ Fill required fields: Asset ID, Area, Description', true);
+    return;
+  }
+  if (editIndex >= 0) {
+    records[editIndex] = data;
+    editIndex = -1;
+  } else {
+    records.push(data);
+  }
+  localStorage.setItem('eq-records', JSON.stringify(records));
+  updateCount();
+  renderTable();
+  clearForm();
+  showToast('✓ Record saved: ' + data.assetId);
+}
+
+function editRecord(i) {
+  const d = records[i];
+  editIndex = i;
+  // Switch to first tab
+  document.querySelectorAll('.tab')[0].click();
+
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.value = val||''; };
+  set('asset-id', d.assetId); set('wrfp', d.wrfp); set('mcc-pos', d.mccPos);
+  set('area', d.area); updateSubArea(); setTimeout(() => set('subarea', d.subarea), 50);
+  set('description', d.description);
+  setRadioVal('eq-type-group', d.type, 'eq-type');
+  set('hp', d.hp); set('voltage', d.voltage); set('rpm', d.rpm);
+  set('frame', d.frame); set('fla', d.fla); set('sf', d.sf);
+  set('enclosure', d.enclosure);
+  set('breaker', d.breaker); set('overload', d.overload);
+  set('fuse', d.fuse); set('wire', d.wire);
+  set('bearing-de', d.bearingDE); set('bearing-fe', d.bearingFE);
+  set('drawing-elec', d.drawingElec); set('drawing-inst', d.drawingInst);
+  set('drawing-mech', d.drawingMech); set('drawing-plc', d.drawingPLC);
+  set('manufacturer', d.manufacturer); set('model-num', d.modelNum);
+  set('serial', d.serial); set('install-date', d.installDate);
+  set('pm-freq', d.pmFreq); set('last-pm', d.lastPM); set('next-pm', d.nextPM);
+  set('notes', d.notes); set('ts-notes', d.tsNotes);
+  updateProgress();
+  showToast('✎ Editing: ' + d.assetId);
+}
+
+function setRadioVal(groupId, value, fieldId) {
+  const group = document.getElementById(groupId);
+  if (!group) return;
+  group.querySelectorAll('.radio-btn').forEach(b => {
+    b.classList.remove('selected');
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'"+value+"'")) {
+      b.classList.add('selected');
+    }
+  });
+  const field = document.getElementById(fieldId);
+  if (field) field.value = value;
+}
+
+function deleteRecord(i) {
+  if (confirm('Delete record: ' + records[i].assetId + '?')) {
+    records.splice(i, 1);
+    localStorage.setItem('eq-records', JSON.stringify(records));
+    updateCount();
+    renderTable();
+    showToast('🗑 Record deleted');
+  }
+}
+
+function clearForm() {
+  document.querySelectorAll('input:not([type=hidden]), select, textarea').forEach(el => el.value = '');
+  document.querySelectorAll('.radio-btn.selected').forEach(b => b.classList.remove('selected'));
+  // reset defaults
+  document.querySelectorAll('[onclick*="selected"]').forEach(b => {});
+  editIndex = -1;
+  updateProgress();
+}
+
+// ── TABLE ─────────────────────────────────────────────────────────────────
+function renderTable() {
+  const search = document.getElementById('filter-text').value.toLowerCase();
+  const areaF  = document.getElementById('filter-area').value;
+  const typeF  = document.getElementById('filter-type').value;
+
+  let filtered = records.filter(r => {
+    const matchText = !search || JSON.stringify(r).toLowerCase().includes(search);
+    const matchArea = !areaF || r.area === areaF;
+    const matchType = !typeF || r.type === typeF;
+    return matchText && matchArea && matchType;
+  });
+
+  const wrap = document.getElementById('table-wrap');
+  if (filtered.length === 0) {
+    wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">⚡</div>${
+      records.length ? 'No records match your filter' : 'No records yet — fill the form and save your first equipment record'
+    }</div>`;
+    return;
+  }
+
+  const typeBadge = t => {
+    const map = { MTR:'badge-motor', VFD:'badge-vfd', PNL:'badge-panel' };
+    return `<span class="badge ${map[t]||'badge-other'}">${t}</span>`;
+  };
+  const docBadge = s => {
+    const map = { CURRENT:'badge-ok', DIGITAL:'badge-ok', MISSING:'badge-missing', OUTDATED:'badge-partial', PAPER:'badge-partial', PARTIAL:'badge-partial' };
+    const label = { CURRENT:'✓ OK', DIGITAL:'✓ OK', MISSING:'MISSING', OUTDATED:'OUTDATED', PAPER:'PAPER', PARTIAL:'PARTIAL' };
+    return `<span class="badge ${map[s]||'badge-missing'}">${label[s]||s}</span>`;
+  };
+
+  let html = `<table>
+    <thead><tr>
+      <th>Asset ID</th><th>Description</th><th>Area</th><th>Sub-Area</th>
+      <th>Type</th><th>HP</th><th>Drawing</th><th>Docs</th><th>Saved</th><th>Actions</th>
+    </tr></thead><tbody>`;
+
+  filtered.forEach((r, i) => {
+    const realIdx = records.indexOf(r);
+    html += `<tr>
+      <td style="font-family:var(--mono);color:var(--accent);font-size:11px">${r.assetId}</td>
+      <td>${r.description}</td>
+      <td style="color:var(--blue);font-size:11px">${r.area}</td>
+      <td style="color:var(--muted);font-size:11px">${r.subarea}</td>
+      <td>${typeBadge(r.type)}</td>
+      <td style="text-align:center">${r.hp||'—'}</td>
+      <td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${r.drawingElec||'—'}</td>
+      <td>${docBadge(r.drawingStatus)}</td>
+      <td style="font-family:var(--mono);font-size:10px;color:var(--muted)">${r.savedAt}</td>
+      <td>
+        <span class="action-icon action-edit" title="Edit" onclick="editRecord(${realIdx})">✎</span>
+        <span class="action-icon" title="Delete" onclick="deleteRecord(${realIdx})">✕</span>
+      </td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+// ── EXPORT CSV ────────────────────────────────────────────────────────────
+function exportCSV() {
+  if (!records.length) { showToast('No records to export', true); return; }
+  const keys = Object.keys(records[0]);
+  const header = keys.join(',');
+  const rows = records.map(r => keys.map(k => `"${(r[k]||'').toString().replace(/"/g,'""')}"`).join(','));
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'Sawmill_Equipment_' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click();
+  showToast('✓ CSV exported — import into your Excel Asset Master');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, warn) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = warn ? 'var(--red)' : 'var(--green)';
+  t.style.color = warn ? 'var(--red)' : 'var(--green)';
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── COUNT ─────────────────────────────────────────────────────────────────
+function updateCount() {
+  document.getElementById('total-count').textContent = records.length;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+updateCount();
+renderTable();
+updateProgress();
+</script>
+</body>
+</html>
